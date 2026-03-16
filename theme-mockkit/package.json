@@ -1,0 +1,22 @@
+{
+  "name": "slidev-theme-mockkit",
+  "version": "1.0.0",
+  "private": true,
+  "keywords": [
+    "slidev-theme",
+    "slidev"
+  ],
+  "slidev": {
+    "defaults": {
+      "fonts": {
+        "sans": "JetBrains Mono, Fira Code, SF Mono, Menlo, Consolas, monospace",
+        "mono": "JetBrains Mono, Fira Code, SF Mono, Menlo, Consolas, monospace"
+      },
+      "colorSchema": "light"
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "slidev": ">=0.47.0"
+  }
+}

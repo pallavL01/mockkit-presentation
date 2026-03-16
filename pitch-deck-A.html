@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MockKit — Stop Waiting. Start Shipping.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1A1A1A;
+    --surface: #242424;
+    --surface2: #2e2e2e;
+    --accent: #00F5FF;
+    --accent2: #00F5FF;
+    --accent3: #00F5FF;
+    --green: #00F5FF;
+    --red: #00F5FF;
+    --orange: #00F5FF;
+    --text: #FFFFFF;
+    --text-dim: #CBD5E1;
+    --glow: rgba(0, 245, 255, 0.3);
+    --glow2: rgba(0, 245, 255, 0.2);
+  }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 245, 255, 0.1);
+  }
+  nav .logo { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 1.5rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  nav .logo span { color: var(--accent); }
+  nav .slide-dots { display: flex; gap: 6px; }
+  nav .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-dim); opacity: 0.3;
+    cursor: pointer; transition: all 0.3s;
+  }
+  nav .dot.active { opacity: 1; background: var(--accent); transform: scale(1.3); }
+  nav .nav-hint { font-size: 0.75rem; color: var(--text-dim); }
+  nav .nav-hint kbd {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  }
+
+  /* ── Slides Container ── */
+  .slides { scroll-snap-type: y mandatory; overflow-y: scroll; height: 100vh; }
+  .slide {
+    scroll-snap-align: start;
+    min-height: 100vh; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 5rem 2rem 3rem;
+    position: relative; overflow: hidden;
+  }
+  .slide-inner {
+    max-width: 1200px; width: 100%;
+    opacity: 0; transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .slide-inner.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── Ambient Backgrounds (disabled — flat bg) ── */
+  .slide::before { display: none; }
+
+  /* ── Typography ── */
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 8vw, 6.5rem);
+    font-weight: 400; letter-spacing: 0.04em;
+    line-height: 1; margin-bottom: 1.5rem;
+    text-transform: uppercase;
+  }
+  .hero-title .gradient {
+    color: var(--accent);
+  }
+  .section-tag {
+    display: inline-block; font-size: 0.75rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    color: var(--accent); margin-bottom: 1rem;
+    padding: 0.3rem 0.8rem; border-radius: 999px;
+    border: 1px solid rgba(0, 245, 255, 0.3);
+    background: rgba(0, 245, 255, 0.08);
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 400; letter-spacing: 0.03em;
+    line-height: 1.1; margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+  .section-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    color: var(--text-dim); line-height: 1.7;
+    max-width: 700px; margin-bottom: 2.5rem;
+    font-weight: 400;
+  }
+
+  /* ── Cards Grid ── */
+  .cards { display: grid; gap: 1.25rem; }
+  .cards-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .cards-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .cards-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 1.75rem;
+    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 245, 255, 0.3);
+    box-shadow: 0 8px 40px rgba(0, 245, 255, 0.1);
+  }
+  .card-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin-bottom: 1rem;
+    background: rgba(0, 245, 255, 0.1);
+  }
+  .card h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.35rem; font-weight: 400; letter-spacing: 0.04em; margin-bottom: 0.5rem; text-transform: uppercase; }
+  .card p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── Stats Row ── */
+  .stats { display: flex; gap: 2rem; flex-wrap: wrap; margin: 2rem 0; }
+  .stat { text-align: center; flex: 1; min-width: 140px; }
+  .stat-value {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 800; letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .stat-label { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem; }
+
+  /* ── Steps ── */
+  .steps { display: flex; gap: 2rem; flex-wrap: wrap; margin: 2rem 0; }
+  .step {
+    flex: 1; min-width: 200px; text-align: center;
+    padding: 2rem 1.5rem;
+    background: var(--surface); border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+  .step-number {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 800;
+    background: var(--accent); color: var(--bg);
+    margin: 0 auto 1rem;
+    box-shadow: 0 0 30px var(--glow);
+  }
+  .step h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; font-weight: 400; letter-spacing: 0.04em; margin-bottom: 0.5rem; text-transform: uppercase; }
+  .step p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; }
+  .step-arrow {
+    position: absolute; right: -1.5rem; top: 50%;
+    transform: translateY(-50%); font-size: 1.5rem;
+    color: var(--accent); opacity: 0.5;
+  }
+
+  /* ── Code Block ── */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 1.5rem 2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+    overflow-x: auto; position: relative;
+    margin: 1.5rem 0;
+  }
+  .code-block .prompt { color: var(--accent); }
+  .code-block .cmd { color: var(--text); }
+  .code-block .flag { color: var(--accent); opacity: 0.7; }
+  .code-block .arg { color: var(--text); }
+  .code-block .cursor {
+    display: inline-block; width: 2px; height: 1.2em;
+    background: var(--accent); margin-left: 4px;
+    animation: blink 1s step-end infinite; vertical-align: text-bottom;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── Before / After ── */
+  .comparison {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+    margin: 2rem 0;
+  }
+  .comparison-col {
+    padding: 2rem; border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .comparison-col.before {
+    background: var(--surface);
+    border-color: rgba(0, 245, 255, 0.1);
+  }
+  .comparison-col.after {
+    background: linear-gradient(135deg, rgba(0, 245, 255, 0.08), var(--surface));
+    border-color: rgba(0, 245, 255, 0.3);
+  }
+  .comparison-col h3 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; font-weight: 400;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .comparison-col.before h3 { color: var(--text-dim); }
+  .comparison-col.after h3 { color: var(--accent); }
+  .comparison-col ul { list-style: none; }
+  .comparison-col li {
+    padding: 0.5rem 0; font-size: 0.95rem; color: var(--text-dim);
+    display: flex; align-items: flex-start; gap: 0.5rem;
+    line-height: 1.4;
+  }
+  .comparison-col.before li::before { content: '~'; color: var(--text-dim); font-weight: 700; flex-shrink: 0; }
+  .comparison-col.after li::before { content: '>'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+  /* ── Streaming Badges ── */
+  .badges { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0; }
+  .badge {
+    padding: 0.6rem 1.25rem; border-radius: 999px;
+    font-size: 0.9rem; font-weight: 600;
+    background: var(--surface2);
+    border: 1px solid rgba(0,245,255,0.2);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .badge .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 245, 255, 0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+  }
+
+  /* ── Modes Visual ── */
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 2rem;
+    text-align: center; position: relative;
+    transition: all 0.3s;
+  }
+  .mode-card:hover {
+    border-color: rgba(99,102,241,0.4);
+    box-shadow: 0 0 50px rgba(99,102,241,0.08);
+    transform: translateY(-4px);
+  }
+  .mode-icon {
+    font-size: 2.5rem; margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px var(--glow));
+  }
+  .mode-card h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; font-weight: 400; letter-spacing: 0.04em; margin-bottom: 0.35rem; text-transform: uppercase; }
+  .mode-card .mode-sub { font-size: 0.8rem; color: var(--accent); margin-bottom: 0.75rem; }
+  .mode-card p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; }
+
+  /* ── Use Cases ── */
+  .use-cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 2rem 0; }
+  .use-case {
+    padding: 1.5rem; border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .use-case:hover { border-color: rgba(0,245,255,0.3); transform: scale(1.03); }
+  .use-case-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+  .use-case h4 { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; font-weight: 400; letter-spacing: 0.04em; margin-bottom: 0.35rem; text-transform: uppercase; }
+  .use-case p { font-size: 0.8rem; color: var(--text-dim); line-height: 1.4; }
+
+  /* ── CTA ── */
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 1rem 2.5rem; border-radius: 12px;
+    font-size: 1.1rem; font-weight: 700;
+    background: var(--accent);
+    color: var(--bg); border: none; cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 4px 30px var(--glow);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .cta-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 40px var(--glow);
+  }
+  .cta-secondary {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 1rem 2rem; border-radius: 12px;
+    font-size: 1rem; font-weight: 600;
+    background: transparent;
+    border: 1px solid rgba(0,245,255,0.3);
+    color: var(--accent); cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .cta-secondary:hover {
+    background: rgba(99,102,241,0.08);
+    border-color: rgba(99,102,241,0.5);
+  }
+
+  /* ── Floating Particles ── */
+  .particles {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  }
+  .particle {
+    position: absolute; border-radius: 50%;
+    background: var(--accent); opacity: 0.15;
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 0.15; }
+    90% { opacity: 0.15; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.75rem; flex-wrap: wrap; margin: 2rem 0;
+  }
+  .flow-box {
+    padding: 0.75rem 1.25rem; border-radius: 10px;
+    background: var(--surface2); font-size: 0.85rem; font-weight: 600;
+    border: 1px solid rgba(0,245,255,0.2);
+    white-space: nowrap;
+  }
+  .flow-arrow { color: var(--accent); font-size: 1.25rem; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .comparison { grid-template-columns: 1fr; }
+    .steps { flex-direction: column; }
+    .step-arrow { display: none; }
+    nav .nav-hint { display: none; }
+  }
+
+  /* ── Stagger animations for children ── */
+  .slide-inner.visible .card,
+  .slide-inner.visible .step,
+  .slide-inner.visible .mode-card,
+  .slide-inner.visible .use-case,
+  .slide-inner.visible .comparison-col,
+  .slide-inner.visible .badge,
+  .slide-inner.visible .stat {
+    opacity: 0; animation: fadeUp 0.6s ease forwards;
+  }
+  .slide-inner.visible > :nth-child(1) { animation-delay: 0s; }
+  .slide-inner.visible > :nth-child(2) { animation-delay: 0.08s; }
+  .slide-inner.visible .card:nth-child(1),
+  .slide-inner.visible .step:nth-child(1),
+  .slide-inner.visible .mode-card:nth-child(1),
+  .slide-inner.visible .stat:nth-child(1),
+  .slide-inner.visible .use-case:nth-child(1),
+  .slide-inner.visible .comparison-col:nth-child(1),
+  .slide-inner.visible .badge:nth-child(1) { animation-delay: 0.2s; }
+  .slide-inner.visible .card:nth-child(2),
+  .slide-inner.visible .step:nth-child(2),
+  .slide-inner.visible .mode-card:nth-child(2),
+  .slide-inner.visible .stat:nth-child(2),
+  .slide-inner.visible .use-case:nth-child(2),
+  .slide-inner.visible .comparison-col:nth-child(2),
+  .slide-inner.visible .badge:nth-child(2) { animation-delay: 0.35s; }
+  .slide-inner.visible .card:nth-child(3),
+  .slide-inner.visible .step:nth-child(3),
+  .slide-inner.visible .mode-card:nth-child(3),
+  .slide-inner.visible .stat:nth-child(3),
+  .slide-inner.visible .use-case:nth-child(3),
+  .slide-inner.visible .badge:nth-child(3) { animation-delay: 0.5s; }
+  .slide-inner.visible .card:nth-child(4),
+  .slide-inner.visible .use-case:nth-child(4),
+  .slide-inner.visible .stat:nth-child(4),
+  .slide-inner.visible .badge:nth-child(4) { animation-delay: 0.65s; }
+  .slide-inner.visible .use-case:nth-child(5) { animation-delay: 0.8s; }
+  .slide-inner.visible .use-case:nth-child(6) { animation-delay: 0.95s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Typing animation for hero ── */
+  .typewriter {
+    overflow: hidden; white-space: nowrap;
+    border-right: 3px solid var(--accent);
+    animation: typing 2s steps(30) 0.5s forwards, blinkCaret 0.75s step-end infinite;
+    width: 0; display: inline-block;
+  }
+  @keyframes typing { to { width: 100%; } }
+  @keyframes blinkCaret { 50% { border-color: transparent; } }
+
+  /* progress bar at bottom */
+  .progress-bar {
+    position: fixed; bottom: 0; left: 0; height: 3px; z-index: 100;
+    background: var(--accent);
+    transition: width 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="logo">Mock<span>Kit</span></div>
+  <div class="slide-dots" id="dots"></div>
+  <div class="nav-hint"><kbd>&darr;</kbd> scroll &middot; <kbd>&#8592;</kbd> <kbd>&#8594;</kbd> navigate</div>
+</nav>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progress" style="width: 0%"></div>
+
+<!-- Slides -->
+<div class="slides" id="slides">
+
+  <!-- ─────────── SLIDE 1: HERO ─────────── -->
+  <section class="slide glow-tl" id="slide-0">
+    <div class="particles" id="particles-hero"></div>
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-tag">API Development Toolkit</div>
+      <h1 class="hero-title">
+        Kill API<br>
+        <span class="gradient">Dependency Hell</span><br>
+        Forever.
+      </h1>
+      <p class="section-subtitle" style="margin: 0 auto 2.5rem; max-width: 600px;">
+        The spec-driven mock infrastructure that lets your team ship products 2&ndash;3&times; faster.
+        No backend required.
+      </p>
+      <div class="code-block" style="display: inline-block; text-align: left; max-width: 600px;">
+        <span class="prompt">$</span>
+        <span class="cmd"> npx mockkit start</span>
+        <span class="flag"> --spec</span>
+        <span class="arg"> api.yaml</span>
+        <span class="cursor"></span>
+      </div>
+      <p style="margin-top: 1.5rem; color: var(--text-dim); font-size: 0.9rem;">
+        One command. Full mock server. Zero wait.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 2: THE PROBLEM ─────────── -->
+  <section class="slide glow-br" id="slide-1">
+    <div class="slide-inner">
+      <div class="section-tag">The Problem</div>
+      <h2 class="section-title">Every Dev Team<br>Knows This Pain</h2>
+      <p class="section-subtitle">API dependencies are the silent killer of engineering velocity.</p>
+      <div class="cards cards-2">
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#9203;</div>
+          <h3>Blocked Sprints</h3>
+          <p>Frontend teams sit idle for days waiting on backend APIs that aren't ready yet. Every blocked sprint is burned budget.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#128221;</div>
+          <h3>Fixture Maintenance Hell</h3>
+          <p>Static JSON fixtures break constantly, drift from reality, and are tedious to maintain across dozens of endpoints.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#128680;</div>
+          <h3>Flaky CI/CD Pipelines</h3>
+          <p>Integration tests that depend on staging environments fail randomly. Developers lose trust in the entire test suite.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#9889;</div>
+          <h3>Untestable Streaming</h3>
+          <p>SSE, WebSockets, and real-time features require complex infrastructure just to test locally. Most teams simply don't.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 3: COST OF THE PROBLEM ─────────── -->
+  <section class="slide glow-center" id="slide-2">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-tag">The Impact</div>
+      <h2 class="section-title">The Hidden Cost of<br><span style="color: var(--accent);">API Dependency</span></h2>
+      <p class="section-subtitle" style="margin: 0 auto 2.5rem;">
+        This isn't a minor inconvenience. It's an engineering-wide tax that compounds every sprint.
+      </p>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value">20&ndash;40%</div>
+          <div class="stat-label">of sprint cycles wasted<br>on dependency waiting</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">1000s</div>
+          <div class="stat-label">engineering hours lost<br>to flaky tests per year</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">100+</div>
+          <div class="stat-label">microservices in avg enterprise<br>&mdash; each a potential blocker</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">&infin;</div>
+          <div class="stat-label">frustration from<br>"works on staging" bugs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 4: THE SOLUTION ─────────── -->
+  <section class="slide glow-tl" id="slide-3">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-tag">The Solution</div>
+      <h2 class="section-title">Introducing<br><span style="color: var(--accent);">MockKit</span></h2>
+      <p class="section-subtitle" style="margin: 0 auto 3rem; max-width: 650px;">
+        Drop in your OpenAPI spec. Get a fully functional mock API server in seconds.
+        No code. No config. No backend.
+      </p>
+      <div class="modes">
+        <div class="mode-card">
+          <div class="mode-icon">&#9889;</div>
+          <h3>Server Mode</h3>
+          <div class="mode-sub">Hono-Powered</div>
+          <p>Standalone mock server with blazing-fast routing, middleware stack, and full HTTP support.</p>
+        </div>
+        <div class="mode-card">
+          <div class="mode-icon">&#127760;</div>
+          <h3>Browser Mode</h3>
+          <div class="mode-sub">Service Worker (MSW)</div>
+          <p>Client-side mocking via Service Workers. Zero backend, works offline, runs in any browser.</p>
+        </div>
+        <div class="mode-card">
+          <div class="mode-icon">&#128736;</div>
+          <h3>Chrome DevTools</h3>
+          <div class="mode-sub">Extension</div>
+          <p>Record, replay, and live-mock directly from your browser. One-click push to MockKit server.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 5: HOW IT WORKS ─────────── -->
+  <section class="slide glow-br" id="slide-4">
+    <div class="slide-inner">
+      <div class="section-tag">How It Works</div>
+      <h2 class="section-title">From Spec to Server<br>in 3 Steps</h2>
+      <p class="section-subtitle">No setup wizards. No configuration files. Just your API spec.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Point</h3>
+          <p>Give MockKit your OpenAPI spec &mdash; YAML or JSON. Or use Simple Schema for quick prototyping.</p>
+          <span class="step-arrow">&rarr;</span>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Launch</h3>
+          <p>MockKit auto-generates realistic endpoints. Emails look like emails. Dates look like dates. UUIDs are real.</p>
+          <span class="step-arrow">&rarr;</span>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Build</h3>
+          <p>Your frontend team builds against a fully realistic API. Parallel development from day one.</p>
+        </div>
+      </div>
+      <div class="flow" style="margin-top: 2.5rem;">
+        <div class="flow-box">OpenAPI Spec</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-box">Parser</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-box">Route Generator</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-box">Smart Data Engine</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-box" style="border-color: var(--accent); color: var(--accent);">Live Mock Server</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 6: RECORDING & REPLAY ─────────── -->
+  <section class="slide glow-tl" id="slide-5">
+    <div class="slide-inner">
+      <div class="section-tag">Record &amp; Replay</div>
+      <h2 class="section-title">Record Once.<br>Replay Forever.</h2>
+      <p class="section-subtitle">Capture real API traffic and turn it into deterministic mock infrastructure.</p>
+      <div class="cards cards-2">
+        <div class="card">
+          <div class="card-icon">&#128308;</div>
+          <h3>One-Click Recording</h3>
+          <p>Chrome extension captures every API call as you browse. No proxy setup. No code changes.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128640;</div>
+          <h3>Push to MockKit</h3>
+          <p>Instantly turn recorded traffic into mock endpoints running on your local MockKit server.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128248;</div>
+          <h3>Snapshots</h3>
+          <p>Save named sets of recordings &mdash; like git branches for your API data. Switch contexts instantly.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128270;</div>
+          <h3>Bug Reproduction</h3>
+          <p>Capture the exact API state that caused the bug. Replay it deterministically. Every. Single. Time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 7: CHROME EXTENSION ─────────── -->
+  <section class="slide glow-center" id="slide-6">
+    <div class="slide-inner">
+      <div class="section-tag">Chrome DevTools</div>
+      <h2 class="section-title">Your Browser Becomes<br>a Mock Factory</h2>
+      <p class="section-subtitle">The Chrome extension is not just a recorder &mdash; it's a complete API development toolkit in your browser.</p>
+      <div class="cards cards-3">
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#127919;</div>
+          <h3>Live Interception</h3>
+          <p>Toggle one switch to redirect production API calls to MockKit. Powered by Chrome's declarativeNetRequest.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#129520;</div>
+          <h3>Smart Fixtures</h3>
+          <p>Auto-detect UUIDs, timestamps, JWTs. Generate templatized, reusable fixtures automatically.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#9878;</div>
+          <h3>GraphQL Intelligence</h3>
+          <p>Auto-group requests by GraphQL operation name. First-class support for GraphQL workflows.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#128203;</div>
+          <h3>Response Diffing</h3>
+          <p>Compare recorded vs. live responses side-by-side. Catch API drift before it breaks your app.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#127916;</div>
+          <h3>Scenario Recording</h3>
+          <p>Record entire user flows as replayable test scenarios. Perfect for QA and E2E testing.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#128279;</div>
+          <h3>Playwright Integration</h3>
+          <p>Record during Playwright tests. Automated E2E test recording with zero manual effort.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 8: STREAMING ─────────── -->
+  <section class="slide glow-br" id="slide-7">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-tag">Differentiator</div>
+      <h2 class="section-title">First-Class<br><span style="color: var(--accent);">Streaming Support</span></h2>
+      <p class="section-subtitle" style="margin: 0 auto 2rem;">
+        Test real-time dashboards, live feeds, chat systems, and event-driven architectures &mdash;
+        all locally, all offline. Nobody else does this.
+      </p>
+      <div class="badges" style="justify-content: center;">
+        <div class="badge"><span class="pulse"></span> Server-Sent Events (SSE)</div>
+        <div class="badge"><span class="pulse"></span> NDJSON Streaming</div>
+        <div class="badge"><span class="pulse"></span> Chunked Transfer</div>
+        <div class="badge"><span class="pulse"></span> WebSocket</div>
+      </div>
+      <div class="flow" style="margin-top: 3rem;">
+        <div class="flow-box">Your Frontend App</div>
+        <span class="flow-arrow">&harr;</span>
+        <div class="flow-box" style="border-color: var(--accent); color: var(--accent);">MockKit Streaming Engine</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-box">Realistic Event Stream</div>
+      </div>
+      <p style="margin-top: 2rem; color: var(--text-dim); font-size: 0.9rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+        Configure event intervals, payload schemas, and stream behaviors &mdash; all from your spec file.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 9: CHAOS ENGINEERING ─────────── -->
+  <section class="slide glow-tl" id="slide-8">
+    <div class="slide-inner">
+      <div class="section-tag">Resilience</div>
+      <h2 class="section-title">Chaos Engineering<br>Built In</h2>
+      <p class="section-subtitle">Break things on purpose. Fix them before your users do.</p>
+      <div class="cards cards-3">
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#128165;</div>
+          <h3>Error Injection</h3>
+          <p>Inject 500s, 503s, and custom error responses. Prove your error handling actually works.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#9201;</div>
+          <h3>Latency &amp; Timeouts</h3>
+          <p>Add random delays, spike latency, simulate network timeouts. Test every edge case.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon" style="background: rgba(0,245,255,0.1);">&#128230;</div>
+          <h3>Response Caching</h3>
+          <p>Built-in LRU cache with ETag/304 support. Test caching behavior without a CDN.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 10: DX ─────────── -->
+  <section class="slide glow-center" id="slide-9">
+    <div class="slide-inner">
+      <div class="section-tag">Developer Experience</div>
+      <h2 class="section-title">Built for Developers<br>Who Ship Fast</h2>
+      <p class="section-subtitle">Every detail obsessed over so your team can focus on building, not configuring.</p>
+      <div class="cards cards-3">
+        <div class="card">
+          <div class="card-icon">&#127919;</div>
+          <h3>Interactive CLI</h3>
+          <p>Templates, examples, guided setup. Get started without reading docs.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128260;</div>
+          <h3>Hot Reload</h3>
+          <p>Edit your spec, server updates instantly. Zero restart development loop.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#127922;</div>
+          <h3>Deterministic Seeds</h3>
+          <p>Same seed = same data, every time. Reproducible mocks for reproducible tests.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128451;</div>
+          <h3>CRUD Store</h3>
+          <p>In-memory persistence across requests. State survives within sessions.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128218;</div>
+          <h3>TypeScript First</h3>
+          <p>Fully typed. IntelliSense everywhere. Catch issues at compile time.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128296;</div>
+          <h3>Works With Everything</h3>
+          <p>React, Vue, Angular, Svelte. Any frontend. Any CI/CD pipeline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 11: BEFORE / AFTER ─────────── -->
+  <section class="slide glow-br" id="slide-10">
+    <div class="slide-inner">
+      <div class="section-tag">The MockKit Effect</div>
+      <h2 class="section-title" style="text-align: center;">Before &amp; After</h2>
+      <p class="section-subtitle" style="text-align: center; margin: 0 auto 2.5rem;">The transformation teams experience when they adopt MockKit.</p>
+      <div class="comparison">
+        <div class="comparison-col before">
+          <h3>&#9940; Without MockKit</h3>
+          <ul>
+            <li>Frontend blocked for days waiting on backend</li>
+            <li>Static JSON fixtures constantly breaking</li>
+            <li>Flaky CI/CD from staging dependencies</li>
+            <li>Streaming features are simply untestable</li>
+            <li>Bug reproduction is a guessing game</li>
+            <li>"Works on my machine" is a daily phrase</li>
+          </ul>
+        </div>
+        <div class="comparison-col after">
+          <h3>&#9989; With MockKit</h3>
+          <ul>
+            <li>Parallel development from day one</li>
+            <li>Specs are the single source of truth</li>
+            <li>Deterministic mocks = zero flaky tests</li>
+            <li>SSE, WebSocket, NDJSON tested locally</li>
+            <li>Record exact state, replay deterministically</li>
+            <li>Ship 2&ndash;3&times; faster with total confidence</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 12: USE CASES ─────────── -->
+  <section class="slide glow-tl" id="slide-11">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-tag">Who It's For</div>
+      <h2 class="section-title">Built for Every Team<br>That Touches APIs</h2>
+      <div class="use-cases">
+        <div class="use-case">
+          <div class="use-case-icon">&#128187;</div>
+          <h4>Frontend Teams</h4>
+          <p>Build UIs without waiting for backends</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">&#128300;</div>
+          <h4>QA Engineers</h4>
+          <p>Deterministic, reproducible test environments</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">&#9881;</div>
+          <h4>Platform Teams</h4>
+          <p>Contract-first API development</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">&#128679;</div>
+          <h4>DevOps</h4>
+          <p>Chaos testing &amp; resilience validation</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">&#128640;</div>
+          <h4>Startups</h4>
+          <p>Move fast with parallel development</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">&#127970;</div>
+          <h4>Enterprises</h4>
+          <p>100+ services, zero dependency bottlenecks</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SLIDE 13: CTA ─────────── -->
+  <section class="slide glow-center" id="slide-12">
+    <div class="particles" id="particles-cta"></div>
+    <div class="slide-inner" style="text-align: center;">
+      <h2 class="hero-title">
+        Stop Waiting.<br>
+        <span class="gradient">Start Shipping.</span>
+      </h2>
+      <p class="section-subtitle" style="margin: 0 auto 1.5rem; max-width: 550px;">
+        Get a fully functional mock server running in under 60 seconds.
+      </p>
+      <div class="code-block" style="display: inline-block; text-align: left; margin-bottom: 2.5rem;">
+        <span class="prompt">$</span>
+        <span class="cmd"> npx mockkit start</span>
+        <span class="flag"> --spec</span>
+        <span class="arg"> api.yaml</span>
+        <span class="cursor"></span>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a class="cta-btn" href="#">Get Started &rarr;</a>
+        <a class="cta-secondary" href="#">View on GitHub</a>
+      </div>
+      <p style="margin-top: 3rem; color: var(--text-dim); font-size: 0.85rem;">
+        Open Source &middot; MIT License &middot; Built with TypeScript &amp; Hono
+      </p>
+    </div>
+  </section>
+
+</div><!-- /slides -->
+
+<script>
+  // ── Slide observer for animations ──
+  const slides = document.querySelectorAll('.slide-inner');
+  const dots = document.getElementById('dots');
+  const progress = document.getElementById('progress');
+  const container = document.getElementById('slides');
+  const totalSlides = slides.length;
+
+  // Create dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => document.getElementById('slide-' + i).scrollIntoView({ behavior: 'smooth' });
+    dots.appendChild(dot);
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        const idx = Array.from(slides).indexOf(e.target);
+        document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+        progress.style.width = ((idx + 1) / totalSlides * 100) + '%';
+      }
+    });
+  }, { threshold: 0.3, root: container });
+
+  slides.forEach(s => observer.observe(s));
+
+  // ── Keyboard navigation ──
+  let current = 0;
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      current = Math.min(current + 1, totalSlides - 1);
+      document.getElementById('slide-' + current).scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      current = Math.max(current - 1, 0);
+      document.getElementById('slide-' + current).scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  // Sync current on scroll
+  container.addEventListener('scroll', () => {
+    const scrollTop = container.scrollTop;
+    const slideHeight = container.clientHeight;
+    current = Math.round(scrollTop / slideHeight);
+  });
+
+  // ── Particles ──
+  function createParticles(containerId, count) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 4 + 2;
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (Math.random() * 15 + 10) + 's';
+      p.style.animationDelay = (Math.random() * 10) + 's';
+      el.appendChild(p);
+    }
+  }
+  createParticles('particles-hero', 30);
+  createParticles('particles-cta', 30);
+
+  // Trigger first slide
+  setTimeout(() => slides[0].classList.add('visible'), 100);
+</script>
+</body>
+</html>

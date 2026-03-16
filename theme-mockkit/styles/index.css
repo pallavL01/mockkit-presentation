@@ -1,0 +1,236 @@
+/* slidev-theme-mockkit — Technical presentation theme */
+/* Grid background, monospace fonts, teal/slate palette */
+
+@import '@slidev/client/styles/layouts-base.css';
+
+:root {
+  --slidev-theme-primary: #0d9488;
+  --bg: #e9ecf2;
+  --bg-grid: #dfe2e8;
+  --card: #f4f5f8;
+  --card-border: #d1d5dc;
+  --slate-900: #1a1f2e;
+  --slate-800: #2d3444;
+  --slate-700: #3d4556;
+  --slate-600: #4a5568;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --teal: #0d9488;
+  --teal-light: #ccfbf1;
+  --red: #b91c1c;
+  --red-light: #fee2e2;
+  --red-bg: #fef2f2;
+  --green: #15803d;
+  --green-light: #dcfce7;
+  --badge-bg: #3d4556;
+}
+
+/* Ensure no white bleed on slide containers */
+.slide-container,
+.slidev-page,
+#slide-content,
+[class*="slidev-page-"],
+.slidev-slides-container {
+  background: var(--bg) !important;
+}
+
+/* Grid background + compact padding */
+.slidev-layout {
+  background: var(--bg) !important;
+  background-image:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
+  color: var(--slate-900);
+  padding: 36px 48px !important;
+  overflow: hidden !important;
+  min-height: 100% !important;
+}
+
+/* Compact typography */
+h1 { color: var(--slate-900) !important; font-weight: 800 !important; letter-spacing: -0.5px; font-size: 1.6em !important; line-height: 1.2 !important; margin-bottom: 4px !important; }
+h2 { color: var(--slate-900) !important; font-weight: 700 !important; letter-spacing: -0.3px; font-size: 1.3em !important; line-height: 1.2 !important; margin-bottom: 4px !important; }
+h3 { color: var(--slate-900) !important; font-weight: 700 !important; font-size: 0.9em !important; margin-bottom: 2px !important; }
+p { color: var(--slate-600); font-size: 0.8em; line-height: 1.4; margin: 0 !important; }
+
+.subtitle { font-size: 0.85em; color: var(--slate-600); line-height: 1.4; }
+
+/* Badge (top-right category label) */
+.badge {
+  position: absolute;
+  top: 24px;
+  right: 36px;
+  background: var(--badge-bg);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 5px;
+  letter-spacing: 0.3px;
+  z-index: 10;
+}
+
+/* Cards */
+.card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.card-light {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+.card-teal {
+  background: #ffffff;
+  border: 2px solid var(--teal);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* Pain cards (red tint) */
+.pain-card {
+  background: var(--red-bg);
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.pain-card h3 { font-size: 0.85em !important; margin-bottom: 2px !important; }
+.pain-card p { font-size: 0.7em !important; line-height: 1.3 !important; }
+
+/* Pipeline / flow diagram */
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.pipe-node {
+  background: var(--slate-700);
+  color: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.65em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pipe-arrow {
+  color: var(--slate-400);
+  font-size: 0.8em;
+}
+
+/* Box (diagram nodes) */
+.box {
+  background: var(--slate-700);
+  color: #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Takeaway callout */
+.takeaway {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #f0fdfa, #ecfdf5);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.65em;
+  color: var(--slate-700);
+  font-weight: 500;
+  width: 100%;
+  margin-top: 8px;
+}
+.takeaway strong { color: var(--teal); }
+
+/* Solution text */
+.sol { color: var(--teal); font-weight: 700; }
+
+/* Terminal mockup */
+.terminal {
+  background: var(--slate-900);
+  border-radius: 10px;
+  overflow: hidden;
+  display: inline-block;
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--slate-800);
+}
+.terminal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.terminal-body {
+  padding: 10px 20px;
+  font-size: 0.85em;
+  line-height: 1.6;
+  color: #e2e8f0;
+}
+
+/* Comparison table */
+.compare-table { border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border); background: #ffffff; }
+.compare-table table { font-size: 0.7em !important; width: 100% !important; }
+.compare-table th { background: var(--card); padding: 8px 14px; text-align: left; font-weight: 700; color: var(--slate-700); }
+.compare-table td { padding: 6px 14px; border-bottom: 1px solid #e5e7eb; color: var(--slate-600); }
+.compare-table tr:last-child td { border-bottom: none; }
+
+/* Environment cards */
+.env-card {
+  background: #dfe3ec;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.env-sub {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.75em;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+/* Funnel rows */
+.funnel-row {
+  text-align: center;
+  padding: 5px 0;
+  font-size: 0.65em;
+  font-weight: 600;
+  color: #e2e8f0;
+  border-radius: 3px;
+  margin: 1px auto;
+}
+
+/* Grid helpers */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+/* Compact code blocks */
+.slidev-layout pre { font-size: 0.7em !important; line-height: 1.4 !important; padding: 8px 12px !important; margin: 4px 0 !important; }
+.slidev-layout code { font-size: 0.85em !important; }
+
+/* Compact tables */
+.slidev-layout table { font-size: 0.7em !important; }
+.slidev-layout th, .slidev-layout td { padding: 4px 10px !important; }
+
+/* Blinking cursor */
+@keyframes blink { 0%,100%{border-right-color:#e2e8f0;} 50%{border-right-color:transparent;} }
+.cursor { animation: blink 1s step-end infinite; border-right: 2px solid #e2e8f0; }

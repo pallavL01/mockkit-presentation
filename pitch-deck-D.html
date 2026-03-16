@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MockKit — Speaker Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --accent: #00F5FF;
+    --text: #FFFFFF;
+    --text-dim: #9ca3af;
+    --text-body: #CBD5E1;
+  }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 2rem;
+    background: rgba(15, 15, 15, 0.9);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  nav .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.08em;
+  }
+  nav .logo span { color: var(--accent); }
+  nav .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem; color: var(--text-dim);
+  }
+  nav .controls {
+    display: flex; align-items: center; gap: 1rem;
+    font-size: 0.75rem; color: var(--text-dim);
+  }
+  nav .controls kbd {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  }
+  .notes-toggle {
+    background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim); padding: 4px 10px; border-radius: 6px;
+    font-size: 0.75rem; cursor: pointer; font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+  }
+  .notes-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .notes-toggle.active { border-color: var(--accent); color: var(--accent); background: rgba(0,245,255,0.08); }
+
+  /* ── Slides ── */
+  .slides { scroll-snap-type: y mandatory; overflow-y: scroll; height: 100vh; }
+  .slide {
+    scroll-snap-align: start;
+    min-height: 100vh; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 5rem 2rem 3rem;
+    position: relative;
+  }
+  .slide-inner {
+    max-width: 1000px; width: 100%;
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .slide-inner.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── Speaker Notes Panel ── */
+  .speaker-notes {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 99;
+    background: #0a0a0a; border-top: 1px solid rgba(0,245,255,0.15);
+    padding: 1.25rem 2rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    max-height: 30vh; overflow-y: auto;
+  }
+  .speaker-notes.show { transform: translateY(0); }
+  .speaker-notes .note-section {
+    font-size: 0.75rem; color: var(--accent); text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .speaker-notes .note-text {
+    font-size: 0.95rem; color: var(--text-body); line-height: 1.7;
+    max-width: 800px;
+  }
+  .speaker-notes .note-text em { color: var(--accent); font-style: normal; }
+  .speaker-notes .note-text strong { color: var(--text); }
+  .speaker-notes .note-text .pause {
+    display: inline-block; color: var(--text-dim); font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 0.25rem; opacity: 0.6;
+  }
+  .speaker-notes .note-meta {
+    margin-top: 0.75rem; font-size: 0.7rem; color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Typography ── */
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    letter-spacing: 0.04em; line-height: 0.95;
+    text-transform: uppercase;
+  }
+  .hero-title .accent { color: var(--accent); }
+  .section-label {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    color: var(--accent); margin-bottom: 1.25rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .slide-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+    letter-spacing: 0.03em; line-height: 1;
+    text-transform: uppercase; margin-bottom: 1.5rem;
+  }
+  .slide-title .accent { color: var(--accent); }
+  .body-text {
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    color: var(--text-body); line-height: 1.7;
+    max-width: 700px;
+  }
+  .body-text strong { color: var(--text); font-weight: 600; }
+
+  /* ── Big Quote ── */
+  .big-quote {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    letter-spacing: 0.02em; line-height: 1.15;
+    text-transform: uppercase;
+    border-left: 4px solid var(--accent);
+    padding-left: 1.5rem;
+    max-width: 800px;
+  }
+
+  /* ── Stat ── */
+  .big-stat {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 12vw, 10rem);
+    color: var(--accent); letter-spacing: 0.02em;
+    line-height: 0.9;
+  }
+  .stat-caption {
+    font-size: 1.15rem; color: var(--text-dim); margin-top: 0.75rem;
+    max-width: 500px;
+  }
+
+  /* ── Simple List ── */
+  .point-list { list-style: none; margin: 1.5rem 0; }
+  .point-list li {
+    padding: 0.6rem 0; font-size: 1.1rem; color: var(--text-body);
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    line-height: 1.5;
+  }
+  .point-list li::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0; margin-top: 0.55rem;
+  }
+
+  /* ── Three Column ── */
+  .three-col {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2rem; margin: 2rem 0;
+  }
+  .col-card {
+    padding: 2rem; border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .col-card h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 0.75rem;
+  }
+  .col-card p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── Code ── */
+  .code-block {
+    background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 1.5rem 2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.9rem, 1.5vw, 1.15rem);
+    margin: 2rem 0; display: inline-block;
+  }
+  .code-block .prompt { color: var(--accent); }
+  .code-block .cursor {
+    display: inline-block; width: 2px; height: 1.2em;
+    background: var(--accent); margin-left: 4px;
+    animation: blink 1s step-end infinite; vertical-align: text-bottom;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── CTA Button ── */
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 1rem 2.5rem; border-radius: 10px;
+    font-size: 1.1rem; font-weight: 700;
+    background: var(--accent); color: var(--bg);
+    border: none; cursor: pointer; text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,245,255,0.25);
+  }
+
+  /* ── Divider ── */
+  .divider {
+    width: 60px; height: 3px; background: var(--accent);
+    margin: 1.5rem 0; opacity: 0.5;
+  }
+
+  /* ── Before/After ── */
+  .ba-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem;
+    margin: 2rem 0;
+  }
+  .ba-col h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .ba-col.before h3 { color: var(--text-dim); }
+  .ba-col.after h3 { color: var(--accent); }
+  .ba-col ul { list-style: none; }
+  .ba-col li {
+    padding: 0.4rem 0; font-size: 0.95rem; color: var(--text-body);
+    line-height: 1.5;
+  }
+  .ba-col.before li { opacity: 0.5; }
+
+  /* ── Comparison Table ── */
+  .compare-table {
+    width: 100%; border-collapse: collapse; margin: 2rem 0;
+  }
+  .compare-table th, .compare-table td {
+    padding: 0.75rem 1rem; text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.95rem;
+  }
+  .compare-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-dim); padding-bottom: 1rem;
+  }
+  .compare-table th:first-child { text-align: left; color: var(--accent); }
+  .compare-table th:last-child { color: var(--accent); }
+  .compare-table td:first-child {
+    text-align: left; font-weight: 500; color: var(--text);
+  }
+  .compare-table td { color: var(--text-dim); }
+  .compare-table .check { color: var(--accent); font-size: 1.1rem; }
+  .compare-table .partial { color: var(--text-dim); font-size: 0.85rem; opacity: 0.7; }
+  .compare-table .dash { color: rgba(255,255,255,0.15); }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .col-mockkit { color: var(--accent); }
+
+  /* ── Animations ── */
+  .slide-inner.visible .col-card,
+  .slide-inner.visible .ba-col {
+    opacity: 0; animation: fadeUp 0.6s ease forwards;
+  }
+  .slide-inner.visible .col-card:nth-child(1),
+  .slide-inner.visible .ba-col:nth-child(1) { animation-delay: 0.15s; }
+  .slide-inner.visible .col-card:nth-child(2),
+  .slide-inner.visible .ba-col:nth-child(2) { animation-delay: 0.3s; }
+  .slide-inner.visible .col-card:nth-child(3) { animation-delay: 0.45s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Progress ── */
+  .progress-bar {
+    position: fixed; bottom: 0; left: 0; height: 2px; z-index: 101;
+    background: var(--accent); transition: width 0.3s ease;
+  }
+
+  /* ── Demo Script ── */
+  .demo-beats {
+    display: grid; gap: 0;
+    margin: 1.5rem 0;
+  }
+  .demo-beat {
+    display: grid; grid-template-columns: 3.5rem 1fr;
+    gap: 0; align-items: start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .demo-beat:last-child { border-bottom: none; }
+  .beat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; font-weight: 600;
+    color: var(--accent); opacity: 0.7;
+    padding-top: 0.15rem;
+  }
+  .beat-content h4 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem; letter-spacing: 0.03em;
+    text-transform: uppercase; margin-bottom: 0.2rem;
+  }
+  .beat-content .beat-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; color: var(--accent); opacity: 0.8;
+    margin-bottom: 0.15rem;
+  }
+  .beat-content .beat-line {
+    font-size: 0.8rem; color: var(--text-dim); line-height: 1.4;
+  }
+  .beat-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; color: var(--text-dim); opacity: 0.5;
+    margin-top: 0.1rem;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .ba-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  MOCKKIT SPEAKER DECK — Full Presentation Script
+═══════════════════════════════════════════════════════════════════════
+
+  PRESENTATION DETAILS:
+    Topic:              MockKit — Spec-Driven API Mock Infrastructure
+    Core Goal:          Get engineering leaders to adopt MockKit as the
+                        standard mocking layer across their org
+    THE ONE THING:      "Your API spec is all you need. One command,
+                        full mock server, zero wait."
+    Call to Action:     Run `npx mockkit start --spec api.yaml` today
+                        and kill your first backend dependency this week.
+
+  AUDIENCE:
+    Who:                Engineering VPs, Staff+ engineers, Tech Leads,
+                        CTOs — 30-100 people (conference/all-hands)
+    Expertise:          Mixed — some know mocking pain deeply, some
+                        manage teams who feel it
+    They care about:    Shipping speed, engineering efficiency, CI
+                        reliability, developer happiness
+    Resistance:         "We already have mocks" / "Another tool?" /
+                        "Switching cost"
+    Emotional state:    Curious but skeptical — they've seen tools
+                        promise this before
+
+  VALUE & IMPACT:
+    Primary value:      Drive adoption by making the problem visceral
+                        and the solution undeniable
+    Anchor data point:  Teams waste 20-40% of sprint cycles on
+                        dependency waiting
+    End feeling:        Empowered — "I can fix this TODAY"
+
+  DELIVERY STYLE:
+    Tone:               Storyteller meets Executive — narrative with
+                        data, not fluff
+    Format:             Slide deck (this file)
+    Opening:            Provocative question
+
+  LOGISTICS:
+    Duration:           15 minutes
+    Q&A:                Yes at the end
+    Setting:            In-person stage or virtual keynote
+    Prior context:      They know APIs are a bottleneck; they haven't
+                        seen a clean solution
+═══════════════════════════════════════════════════════════════════════
+-->
+
+<nav>
+  <div class="logo">MOCK<span>KIT</span></div>
+  <div class="slide-counter" id="counter">01 / 11</div>
+  <div class="controls">
+    <button class="notes-toggle" id="notesBtn" title="Toggle speaker notes (N)">Notes</button>
+    <span><kbd>N</kbd> notes</span>
+    <span><kbd>C</kbd> compare</span>
+    <span><kbd>D</kbd> demo</span>
+    <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate</span>
+  </div>
+</nav>
+
+<div class="progress-bar" id="progress" style="width: 0%"></div>
+
+<!-- Speaker Notes Panel -->
+<div class="speaker-notes" id="notesPanel">
+  <div class="note-section" id="noteSection"></div>
+  <div class="note-text" id="noteText"></div>
+  <div class="note-meta" id="noteMeta"></div>
+</div>
+
+<div class="slides" id="slides">
+
+  <!-- ═══ SLIDE 1: THE HOOK ═══ -->
+  <section class="slide" id="slide-0"
+    data-note-section="1. THE HOOK — 90 seconds"
+    data-note-meta="TONE: Slow, deliberate. Let the question land. PACE: Conversational, almost casual."
+    data-note="How many of you shipped something <em>last week</em>? <span class='pause'>[PAUSE]</span> Good. Now — how many of you shipped it <strong>on time</strong>? <span class='pause'>[PAUSE — let the silence do the work]</span> And how many of you were blocked — at some point during that sprint — waiting on an API that wasn't ready yet? <span class='pause'>[PAUSE]</span> Yeah. That's what I thought. <span class='pause'>[BEAT]</span> I've watched this same scene play out at every company I've worked with. A frontend team, fully staffed, fully capable, sitting idle because a backend endpoint isn't done. They COULD be building. They COULD be testing. They COULD be shipping. But instead they're writing static JSON fixtures by hand, copy-pasting fake data into files, and praying it looks close enough to the real thing. And when the real API finally lands? Half those fixtures are wrong anyway.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// the question</div>
+      <h1 class="hero-title">
+        When was the<br>last time you<br>shipped <span class="accent">on time?</span>
+      </h1>
+      <p style="margin-top: 2rem; color: var(--text-dim); font-size: 0.95rem; letter-spacing: 0.05em;">
+        Presented by <span style="color: var(--text); font-weight: 600;">Pallav Laskar</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 2: THE PROBLEM ═══ -->
+  <section class="slide" id="slide-1"
+    data-note-section="2. THE PROBLEM — 2 minutes"
+    data-note-meta="TONE: Build frustration. They should feel seen. PACE: Accelerate slightly — stack the pain."
+    data-note="Here's what's actually happening in most engineering orgs right now. <span class='pause'>[PAUSE]</span> Your frontend team is BLOCKED. Not because they're slow. Not because they lack talent. Because the API they depend on <em>doesn't exist yet</em>. So they do what everyone does — they fake it. They write static JSON fixtures. Files full of made-up data. And it WORKS... until the real API comes back with a different field name. A different nesting structure. A date format nobody expected. <span class='pause'>[PAUSE]</span> Now multiply that by every endpoint, every sprint, every team. That's not a minor inconvenience. That's a TAX on your entire engineering org. And it compounds. Every. Single. Sprint.">
+    <div class="slide-inner">
+      <div class="section-label">// the problem</div>
+      <h2 class="slide-title">The API<br><span class="accent">Dependency Tax</span></h2>
+      <ul class="point-list">
+        <li>Frontend teams blocked for days — waiting on endpoints that don't exist yet</li>
+        <li>Static JSON fixtures that break the moment the real API ships</li>
+        <li>CI/CD pipelines failing because staging is flaky — again</li>
+        <li>Streaming endpoints that are simply impossible to test locally</li>
+        <li>"Works on staging" bugs that only surface in production</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 3: THE ANCHOR STAT ═══ -->
+  <section class="slide" id="slide-2"
+    data-note-section="3. THE INSIGHT — 90 seconds"
+    data-note-meta="TONE: Let the number hit. Don't rush past it. PACE: Slow down dramatically."
+    data-note="I want you to sit with this number for a second. <span class='pause'>[PAUSE — let it land]</span> Twenty to forty percent. That's not my opinion. That's what engineering teams report when you actually measure where sprint time goes. One-fifth to nearly HALF of your team's capacity — gone. Not to building features. Not to fixing bugs. Not to innovation. To <em>waiting</em>. <span class='pause'>[PAUSE]</span> Waiting on someone else's API. Waiting on staging to come back up. Waiting on a fixture file that someone forgot to update. <span class='pause'>[PAUSE]</span> If you're running a 20-person engineering team, that's like paying 4 to 8 engineers to sit in a waiting room. Every sprint. Would you accept that from any other part of your business?">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// the insight</div>
+      <div class="big-stat">20-40%</div>
+      <p class="stat-caption">of sprint cycles are lost to dependency waiting — not building, not testing, not shipping. Waiting.</p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 4: THE PIVOT ═══ -->
+  <section class="slide" id="slide-3"
+    data-note-section="4. THE PIVOT — 60 seconds"
+    data-note-meta="TONE: Shift energy. Lighter. Confident. This is where hope enters. PACE: Pick up."
+    data-note="So here's the thing — <span class='pause'>[PAUSE]</span> — it doesn't have to be this way. <span class='pause'>[BEAT]</span> What if your frontend team could start building the MOMENT the API spec was written? Not when it's deployed. Not when staging is ready. The moment someone writes the contract. <span class='pause'>[PAUSE]</span> What if you could point a tool at your OpenAPI spec and get a fully functional mock server — with realistic data, correct schemas, proper status codes — in literally one command? What if your CI pipeline never touched staging again? <span class='pause'>[PAUSE]</span> That's MockKit.">
+    <div class="slide-inner">
+      <div class="section-label">// the pivot</div>
+      <div class="big-quote">
+        What if your team could start building the moment the spec was written &mdash; not when the backend is deployed?
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 5: THE SOLUTION ═══ -->
+  <section class="slide" id="slide-4"
+    data-note-section="5. THE SOLUTION — 2 minutes"
+    data-note-meta="TONE: Confident, clear, almost casual. Like showing a friend something cool. PACE: Steady."
+    data-note="MockKit is spec-driven mock infrastructure. Let me show you what that means in practice. <span class='pause'>[PAUSE]</span> You give it your OpenAPI spec — the YAML or JSON file you probably already have. One command: <em>npx mockkit start --spec api.yaml</em>. That's it. <span class='pause'>[PAUSE]</span> MockKit reads your spec, generates every endpoint, and serves realistic responses. Not random garbage. SMART data. Email fields contain emails. Date fields contain dates. UUIDs are real UUIDs. It respects your schemas, your enums, your constraints. <span class='pause'>[PAUSE]</span> And it runs three ways. As a standalone server — powered by Hono, one of the fastest web frameworks out there. In the browser — using Service Workers, so your frontend mocks itself with zero backend. Or as a Chrome DevTools extension — where you can record live API traffic and replay it locally. <span class='pause'>[PAUSE]</span> Plus — and I'll show you this in a moment — it ships with an MCP server. That means your AI coding assistant can control all of it through natural language. But more on that in a second.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// the solution</div>
+      <h2 class="slide-title">One spec. One command.<br><span class="accent">Full mock server.</span></h2>
+      <div class="code-block">
+        <span class="prompt">$</span> npx mockkit start --spec api.yaml<span class="cursor"></span>
+      </div>
+      <div class="three-col" style="text-align: left;">
+        <div class="col-card">
+          <h3>Server Mode</h3>
+          <p>Standalone Hono-powered mock server. Full HTTP, middleware stack, realistic responses. Runs anywhere.</p>
+        </div>
+        <div class="col-card">
+          <h3>Browser Mode</h3>
+          <p>Client-side mocking via Service Workers. Your frontend mocks itself. No backend. Works offline.</p>
+        </div>
+        <div class="col-card">
+          <h3>DevTools Extension</h3>
+          <p>Record live API traffic from Chrome. Push to MockKit. Toggle live interception with one click.</p>
+        </div>
+      </div>
+      <p style="margin-top: 1.5rem; color: var(--text-dim); font-size: 0.85rem; text-align: center;">
+        + <span style="color: var(--accent); font-weight: 600;">MCP Server</span> &mdash; your AI assistant controls all of this through natural language
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 6: THE DIFFERENTIATOR ═══ -->
+  <section class="slide" id="slide-5"
+    data-note-section="6. PROOF / DIFFERENTIATOR — 2 minutes"
+    data-note-meta="TONE: Expert. This is where you earn credibility. PACE: Measured, authoritative."
+    data-note="Now you might be thinking — there are other mock tools out there. And you'd be right. So let me tell you what MockKit does that nothing else does. <span class='pause'>[PAUSE]</span> First: <strong>streaming</strong>. Server-Sent Events. NDJSON. Chunked Transfer. WebSockets. If you're building anything with real-time features — dashboards, live feeds, chat, notifications — you know how painful it is to test those locally. MockKit handles it natively. Define your stream in the spec, MockKit serves it. <span class='pause'>[PAUSE]</span> Second: <strong>record and replay</strong>. The Chrome extension records every API call as you browse. One click pushes those recordings to your MockKit server. Now you can replay that exact API state — deterministically — every time. Think of it like git for your API responses. <span class='pause'>[PAUSE]</span> Third: <strong>chaos engineering</strong>. Inject 500 errors. Add random latency. Simulate timeouts. Prove your error handling works BEFORE your users find out it doesn't.">
+    <div class="slide-inner">
+      <div class="section-label">// what nobody else does</div>
+      <h2 class="slide-title">This isn't<br><span class="accent">another mock tool</span></h2>
+      <div class="three-col">
+        <div class="col-card">
+          <h3>Streaming</h3>
+          <p>First-class SSE, NDJSON, Chunked Transfer, and WebSocket support. Test real-time features locally.</p>
+        </div>
+        <div class="col-card">
+          <h3>Record & Replay</h3>
+          <p>Capture live API traffic from Chrome. Push to MockKit. Replay deterministically. Like git for API responses.</p>
+        </div>
+        <div class="col-card">
+          <h3>Chaos Engineering</h3>
+          <p>Inject errors, latency, timeouts. Prove your error handling works before production proves it doesn't.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 6.5: AI-POWERED — THE WOW MOMENT ═══ -->
+  <section class="slide" id="slide-6"
+    data-note-section="6.5. THE WOW MOMENT — 90 seconds"
+    data-note-meta="TONE: Theatrical. This is your 'one more thing.' Drop the energy, then hit hard. PACE: Slow setup, fast payoff."
+    data-note="Now here's where it gets interesting. <span class='pause'>[PAUSE]</span> Everything I just showed you — the CLI commands, the flags, the curl calls? <span class='pause'>[LONG PAUSE]</span> You don't need to remember <em>any</em> of it. <span class='pause'>[PAUSE — let the confusion land]</span> MockKit ships with an MCP server — Model Context Protocol. That means your AI coding assistant — whatever you use — can control MockKit <strong>directly</strong>. <span class='pause'>[PAUSE]</span> You just <em>tell it what you want</em>. 'Start a mock server with my API spec. Enable chaos mode with 30% error rate. Navigate to my dashboard and screenshot what the user sees.' The AI calls the tools. Starts the server. Injects the faults. Takes the screenshot. You never type a command. <span class='pause'>[PAUSE]</span> And when something breaks in replay mode? You say 'why isn't GET /api/users matching?' and the AI calls the debug tool and tells you — 'Your recording has page=1 but the request has page=2.' <span class='pause'>[PAUSE]</span> This isn't a wrapper around a CLI. It's 16 structured tools that any MCP-compatible AI can orchestrate. MockKit becomes the API layer of your AI coding workflow.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// one more thing</div>
+      <h2 class="slide-title">You don't need to<br>remember <span class="accent">any of this</span></h2>
+      <p class="body-text" style="margin: 1.5rem auto 2.5rem; text-align: center;">
+        MockKit ships with an <strong>MCP server</strong> — your AI coding assistant controls everything through natural language.
+      </p>
+      <div class="three-col" style="text-align: left;">
+        <div class="col-card">
+          <h3>Just Talk</h3>
+          <p>"Start a mock server with my spec, enable chaos, and screenshot the dashboard."</p>
+        </div>
+        <div class="col-card">
+          <h3>AI Chains Tools</h3>
+          <p>16 MCP tools — the AI starts servers, injects faults, debugs replays, scaffolds tests. Zero commands.</p>
+        </div>
+        <div class="col-card">
+          <h3>Every AI Tool</h3>
+          <p>Any MCP-compatible AI tool — one config file. Works with every major coding assistant.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 7: COMPETITIVE LANDSCAPE (HIDDEN) ═══ -->
+  <section class="slide" id="slide-hidden-comp" style="display:none"
+    data-note-section="7. COMPETITIVE LANDSCAPE — 90 seconds"
+    data-note-meta="TONE: Honest, measured. You're earning trust here, not selling. PACE: Steady, factual."
+    data-note="Now, you might be wondering — how does this compare to the tools you already know? <span class='pause'>[PAUSE]</span> Let me be upfront about this. MSW is an <em>excellent</em> library. If you're doing browser-level request interception, it's the industry standard. And WireMock has been the backbone of Java-based API testing for over a decade. Prism is great if you just want to point at a spec and get responses. <span class='pause'>[PAUSE]</span> But look at the full picture. MSW doesn't give you a standalone server. It has WebSocket support but no SSE or streaming primitives. WireMock has record-replay and solid fault injection, but it's a Java ecosystem tool — not TypeScript-native, no browser mode. Prism generates data from specs but has no streaming, no chaos testing, no record-replay. <span class='pause'>[PAUSE]</span> MockKit is the only tool that covers the entire surface area. Spec-driven generation, three runtime modes, first-class streaming, record-replay from Chrome, and chaos engineering — all in one package. That's not a marketing claim. That's the feature matrix.">
+    <div class="slide-inner">
+      <div class="section-label">// competitive landscape</div>
+      <h2 class="slide-title">How MockKit <span class="accent">compares</span></h2>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>MSW</th>
+            <th>WireMock</th>
+            <th>Prism</th>
+            <th>MockKit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>OpenAPI spec-driven</td>
+            <td><span class="partial">Partial</span></td>
+            <td><span class="partial">Partial</span></td>
+            <td><span class="check">✓</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Server mode</td>
+            <td><span class="partial">Partial</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Browser mode (Service Worker)</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Chrome DevTools extension</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Streaming (SSE, NDJSON, WS)</td>
+            <td><span class="partial">Partial</span></td>
+            <td><span class="partial">Partial</span></td>
+            <td><span class="dash">—</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Record & replay</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="dash">—</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Chaos engineering</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="dash">—</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Smart data generation</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Zero-config setup</td>
+            <td><span class="partial">Partial</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+            <td class="col-mockkit"><span class="check">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 8: THE TRANSFORMATION ═══ -->
+  <section class="slide" id="slide-7"
+    data-note-section="8. THE TRANSFORMATION — 90 seconds"
+    data-note-meta="TONE: Aspirational but grounded. Paint the picture. PACE: Steady, building energy."
+    data-note="So what does this actually look like for your team? <span class='pause'>[PAUSE]</span> Before MockKit, your frontend is blocked the moment someone says 'the API isn't ready yet.' Your fixtures drift. Your CI breaks on Tuesdays for no reason. Streaming features get tested in production — or not at all. <span class='pause'>[PAUSE]</span> After MockKit? Your frontend starts building the day the spec is written. Your mocks are generated from the spec itself — so they CAN'T drift. Your CI runs against deterministic mocks — so it never flakes. And your streaming features? Tested locally, every time. <span class='pause'>[PAUSE]</span> That's not a minor improvement. Teams using spec-driven mocks ship <em>two to three times faster</em>. Not because they type faster. Because they never stop.">
+    <div class="slide-inner">
+      <div class="section-label">// the transformation</div>
+      <h2 class="slide-title">Before & <span class="accent">After</span></h2>
+      <div class="ba-grid">
+        <div class="ba-col before">
+          <h3>Before MockKit</h3>
+          <ul>
+            <li>Blocked sprints waiting on backends</li>
+            <li>Hand-written JSON fixtures that drift</li>
+            <li>Flaky CI tied to staging environments</li>
+            <li>Streaming tested in production (or never)</li>
+            <li>Bug reproduction is a guessing game</li>
+          </ul>
+        </div>
+        <div class="ba-col after">
+          <h3>After MockKit</h3>
+          <ul>
+            <li>Parallel development from day one</li>
+            <li>Mocks generated from the spec — always correct</li>
+            <li>Deterministic CI — zero flaky tests</li>
+            <li>SSE, WebSocket, NDJSON tested locally</li>
+            <li>Record exact state, replay every time</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 8: THE EMOTIONAL PEAK ═══ -->
+  <section class="slide" id="slide-8"
+    data-note-section="9. THE EMOTIONAL PEAK — 90 seconds"
+    data-note-meta="TONE: Slow. Personal. This is the moment they remember. PACE: Drop to almost conversational whisper."
+    data-note="I want to tell you why this matters to me personally. <span class='pause'>[PAUSE]</span> I've been on that frontend team. I've been the engineer staring at a Slack channel, waiting for someone to say 'the endpoint is up.' I've written the fixture files. I've debugged the CI failures at midnight that turned out to be staging being down. I've shipped features late — not because I was slow, but because I was <em>blocked</em>. <span class='pause'>[PAUSE]</span> And the worst part? Nobody tracks that time. It doesn't show up in any metric. It just... disappears. Into the gap between teams. <span class='pause'>[LONG PAUSE]</span> MockKit exists to close that gap. So that no engineer ever has to sit idle waiting on someone else's deployment schedule. <span class='pause'>[PAUSE]</span> Because the spec IS the contract. And the contract is all you need.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// why this matters</div>
+      <h2 class="slide-title">
+        The spec is<br>the contract.<br>
+        <span class="accent">The contract is<br>all you need.</span>
+      </h2>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 9: PROOF POINTS ═══ -->
+  <section class="slide" id="slide-9"
+    data-note-section="10. PROOF — 60 seconds"
+    data-note-meta="TONE: Crisp, factual. Rapid-fire credibility. PACE: Quick, confident."
+    data-note="Let me give you the quick facts. <span class='pause'>[PAUSE]</span> MockKit is open source. MIT licensed. Written in TypeScript. Runs on Node 20+. The server is powered by Hono — one of the fastest web frameworks benchmarked. It supports OpenAPI 3.x natively, or a Simple Schema format if you want to prototype fast. <span class='pause'>[PAUSE]</span> The Chrome extension uses Manifest V3 and Chrome's declarativeNetRequest API for live traffic interception — no sketchy proxies. And the MCP server exposes 16 structured tools — so any MCP-compatible AI tool can orchestrate MockKit natively. <span class='pause'>[PAUSE]</span> Recording, replay, snapshots, chaos injection, CRUD stores, deterministic seeding — it's all built in. Not plugins. Not extensions. Core features from day one. <span class='pause'>[PAUSE]</span> It works with React, Vue, Angular, Svelte — any frontend. Any CI pipeline. Any AI tool. Any team.">
+    <div class="slide-inner">
+      <div class="section-label">// proof</div>
+      <h2 class="slide-title"><span class="accent">Built</span> to earn<br>your trust</h2>
+      <ul class="point-list">
+        <li>Hono-powered server — one of the fastest web frameworks benchmarked</li>
+        <li>OpenAPI 3.x native + Simple Schema for rapid prototyping</li>
+        <li>Chrome Manifest V3 — declarativeNetRequest, no proxy hacks</li>
+        <li>MCP server with 16 tools — works with any AI coding assistant</li>
+        <li>Deterministic seeding — same seed, same data, every time</li>
+        <li>Works with any frontend framework, any CI/CD pipeline</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 10: THE CLOSE ═══ -->
+  <section class="slide" id="slide-10"
+    data-note-section="11. THE CALL TO ACTION — 60 seconds"
+    data-note-meta="TONE: Warm, direct, empowering. End on energy. PACE: Moderate, then land the final line slowly."
+    data-note="So here's what I'm asking. <span class='pause'>[PAUSE]</span> Don't take my word for it. Don't schedule a meeting about it. Don't add it to next quarter's roadmap. <span class='pause'>[PAUSE]</span> Go back to your desk today. Find that API spec your team depends on — the one that's been blocking someone. Open a terminal. Run this one command. <span class='pause'>[PAUSE]</span> <em>npx mockkit start --spec api.yaml</em> <span class='pause'>[PAUSE]</span> In sixty seconds, you'll have a fully functional mock server running. Your frontend team can start building THIS AFTERNOON. <span class='pause'>[PAUSE]</span> You've been waiting on APIs long enough. <span class='pause'>[LONG PAUSE]</span> Stop waiting. <span class='pause'>[BEAT]</span> Start shipping. <span class='pause'>[PAUSE]</span> Thank you.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// your move</div>
+      <h2 class="hero-title" style="margin-bottom: 2rem;">
+        Stop waiting.<br><span class="accent">Start shipping.</span>
+      </h2>
+      <div class="code-block">
+        <span class="prompt">$</span> npx mockkit start --spec api.yaml<span class="cursor"></span>
+      </div>
+      <p class="body-text" style="margin: 2rem auto 2.5rem; text-align: center; max-width: 500px;">
+        One command. Sixty seconds. Your first backend dependency — gone.
+      </p>
+      <p style="margin-top: 2rem; color: var(--text-dim); font-size: 0.85rem;">
+        TypeScript &middot; Hono &middot; MSW
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ HIDDEN: DEMO SCRIPT ═══ -->
+  <section class="slide" id="slide-hidden-demo" style="display:none"
+    data-note-section="DEMO SCRIPT — 6 minutes"
+    data-note-meta="PACE: Fast. No filler. Every beat is a punchline. Let the terminal do the talking."
+    data-note="This is your cheat sheet. 8 beats, 6 minutes. Each one ends with a wow moment. Don't explain what things are — just DO them and let the audience react. The streaming beat (beat 2) is your biggest visual moment — let the events flow for 5 full seconds before speaking. Beat 8 is the CLOSER — after showing 7 CLI beats, you reveal the AI can do it all in one sentence. Save this for last. Let the audience process the contrast.">
+    <div class="slide-inner">
+      <div class="section-label">// demo cheat sheet</div>
+      <h2 class="slide-title">Live Demo <span class="accent">Script</span></h2>
+      <div class="demo-beats">
+        <div class="demo-beat">
+          <div class="beat-num">01</div>
+          <div class="beat-content">
+            <h4>Zero to Server</h4>
+            <div class="beat-cmd">mockkit start -s ./examples/orchestrator-agents.yaml -v</div>
+            <div class="beat-line">curl /agents/v1/conversations &mdash; "Real UUIDs. Real timestamps. One command."</div>
+            <div class="beat-time">30s</div>
+          </div>
+        </div>
+        <div class="demo-beat">
+          <div class="beat-num">02</div>
+          <div class="beat-content">
+            <h4>Streaming. Live.</h4>
+            <div class="beat-cmd">curl -N -d '{"query":"Hello"}' /agents/v1/chat</div>
+            <div class="beat-line">Let events stream 5 sec. "Try that with a JSON fixture."</div>
+            <div class="beat-time">30s</div>
+          </div>
+        </div>
+        <div class="demo-beat">
+          <div class="beat-num">03</div>
+          <div class="beat-content">
+            <h4>Record a Real API</h4>
+            <div class="beat-cmd">mockkit record -t https://dummyjson.com -p 3001</div>
+            <div class="beat-line">Hit a few endpoints &rarr; mockkit snapshots save demo-capture</div>
+            <div class="beat-time">45s</div>
+          </div>
+        </div>
+        <div class="demo-beat">
+          <div class="beat-num">04</div>
+          <div class="beat-content">
+            <h4>Replay Without the Real API</h4>
+            <div class="beat-cmd">mockkit replay -r .mockkit/recordings.json -p 3001</div>
+            <div class="beat-line">"Same response. No real API. Your CI will never flake again."</div>
+            <div class="beat-time">30s</div>
+          </div>
+        </div>
+        <div class="demo-beat">
+          <div class="beat-num">05</div>
+          <div class="beat-content">
+            <h4>Chrome Extension</h4>
+            <div class="beat-cmd">DevTools &rarr; MockKit &rarr; Record &rarr; Push &rarr; Live Mock ON</div>
+            <div class="beat-line">"You just turned your browser into a mock factory. One toggle."</div>
+            <div class="beat-time">60s</div>
+          </div>
+        </div>
+        <div class="demo-beat">
+          <div class="beat-num">06</div>
+          <div class="beat-content">
+            <h4>Generate MSW Handlers</h4>
+            <div class="beat-cmd">mockkit browser generate -s ./examples/orchestrator-agents.yaml -o ./src/mocks</div>
+            <div class="beat-line">"Two lines in your app. Frontend mocks itself. No server."</div>
+            <div class="beat-time">30s</div>
+          </div>
+        </div>
+        <div class="demo-beat">
+          <div class="beat-num">07</div>
+          <div class="beat-content">
+            <h4>Break Things on Purpose</h4>
+            <div class="beat-cmd">mockkit start -s ... --chaos --chaos-error-rate 0.5 --chaos-latency 500-2000</div>
+            <div class="beat-line">"Half your requests just failed. This is how you prove error handling works."</div>
+            <div class="beat-time">30s</div>
+          </div>
+        </div>
+        <div class="demo-beat" style="border-top: 2px solid rgba(0,245,255,0.2); margin-top: 0.5rem; padding-top: 1rem;">
+          <div class="beat-num" style="color: var(--accent); opacity: 1;">08</div>
+          <div class="beat-content">
+            <h4 style="color: var(--accent);">The Reveal &mdash; "You Don't Need Any of This"</h4>
+            <div class="beat-cmd">Open any AI coding assistant in the project</div>
+            <div class="beat-line">Type: "Start a mock server with my API spec, enable chaos with 50% errors, navigate to the dashboard and screenshot what breaks."</div>
+            <div class="beat-line" style="margin-top: 0.3rem;">AI calls mockkit_server_start &rarr; mockkit_chaos_configure &rarr; navigate_page &rarr; take_screenshot. No commands typed.</div>
+            <div class="beat-line" style="margin-top: 0.3rem;">"Everything I just showed you in 7 steps? One sentence. That's MCP."</div>
+            <div class="beat-time">60s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide-inner');
+  const container = document.getElementById('slides');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const notesPanel = document.getElementById('notesPanel');
+  const notesBtn = document.getElementById('notesBtn');
+  const noteSection = document.getElementById('noteSection');
+  const noteText = document.getElementById('noteText');
+  const noteMeta = document.getElementById('noteMeta');
+  const total = slides.length;
+  let current = 0;
+  let notesVisible = false;
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateSlide(idx) {
+    current = idx;
+    counter.textContent = pad(idx + 1) + ' / ' + pad(total);
+    progress.style.width = ((idx + 1) / total * 100) + '%';
+
+    // Update notes
+    const section = document.getElementById('slide-' + idx);
+    if (section) {
+      noteSection.textContent = section.dataset.noteSection || '';
+      noteText.innerHTML = section.dataset.note || '';
+      noteMeta.textContent = section.dataset.noteMeta || '';
+    }
+  }
+
+  // Observer
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        const idx = Array.from(slides).indexOf(e.target);
+        updateSlide(idx);
+      }
+    });
+  }, { threshold: 0.3, root: container });
+  slides.forEach(s => observer.observe(s));
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      current = Math.min(current + 1, total - 1);
+      document.getElementById('slide-' + current).scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      current = Math.max(current - 1, 0);
+      document.getElementById('slide-' + current).scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'n' || e.key === 'N') {
+      toggleNotes();
+    }
+    if (e.key === 'c' || e.key === 'C') {
+      toggleCompare();
+    }
+    if (e.key === 'd' || e.key === 'D') {
+      toggleDemo();
+    }
+  });
+
+  // Scroll sync
+  container.addEventListener('scroll', () => {
+    current = Math.round(container.scrollTop / container.clientHeight);
+  });
+
+  // Notes toggle
+  function toggleNotes() {
+    notesVisible = !notesVisible;
+    notesPanel.classList.toggle('show', notesVisible);
+    notesBtn.classList.toggle('active', notesVisible);
+  }
+  notesBtn.addEventListener('click', toggleNotes);
+
+  // Compare slide toggle
+  const compSlide = document.getElementById('slide-hidden-comp');
+  let compVisible = false;
+  function toggleCompare() {
+    compVisible = !compVisible;
+    compSlide.style.display = compVisible ? '' : 'none';
+    if (compVisible) {
+      // Re-query slides since DOM changed
+      compSlide.querySelector('.slide-inner').classList.add('visible');
+      compSlide.scrollIntoView({ behavior: 'smooth' });
+      // Update notes
+      noteSection.textContent = compSlide.dataset.noteSection || '';
+      noteText.innerHTML = compSlide.dataset.note || '';
+      noteMeta.textContent = compSlide.dataset.noteMeta || '';
+    }
+  }
+
+  // Demo slide toggle
+  const demoSlide = document.getElementById('slide-hidden-demo');
+  let demoVisible = false;
+  function toggleDemo() {
+    demoVisible = !demoVisible;
+    demoSlide.style.display = demoVisible ? '' : 'none';
+    if (demoVisible) {
+      demoSlide.querySelector('.slide-inner').classList.add('visible');
+      demoSlide.scrollIntoView({ behavior: 'smooth' });
+      noteSection.textContent = demoSlide.dataset.noteSection || '';
+      noteText.innerHTML = demoSlide.dataset.note || '';
+      noteMeta.textContent = demoSlide.dataset.noteMeta || '';
+    }
+  }
+
+  // Init
+  setTimeout(() => { slides[0].classList.add('visible'); updateSlide(0); }, 100);
+</script>
+</body>
+</html>
