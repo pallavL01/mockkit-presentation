@@ -555,7 +555,7 @@
         </div>
         <div class="col-card">
           <h3>Autonomous Loops</h3>
-          <p>AI generates, runs, observes, debugs, retries &mdash; without asking. <strong>Proof:</strong> the <code style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">record-flow-as-test</code> prompt has the AI drive a UI flow, synthesize a Playwright .spec.ts, and ship a self-cleaning regression test that survives parallel CI. One prompt &rarr; permanent test artifact.</p>
+          <p>AI generates AND audits its own work. <code style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">record-flow-as-test</code> ships a self-cleaning Playwright .spec.ts from a single prompt; <code style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">audit-test-quality</code> retroactively pulls legacy tests up to the same standard. The loop closes on quality &mdash; not just functionality.</p>
         </div>
         <div class="col-card">
           <h3>Composable Tools</h3>
@@ -741,7 +741,8 @@
       <h2 class="slide-title"><span class="accent">Built</span> for AI.<br>Trusted by humans.</h2>
       <ul class="point-list">
         <li>16 structured MCP tools &mdash; typed results, not stringified CLI output</li>
-        <li>Battle-tested across <strong>19 enterprise scenarios</strong> &mdash; service virtualization, incident replay, chaos, circuit breaker, templatization, MSW codegen, Lighthouse-instrumented chaos perf testing, and AI-generated regression tests</li>
+        <li>Battle-tested across <strong>20 enterprise scenarios</strong> &mdash; service virtualization, incident replay, chaos, circuit breaker, templatization, MSW codegen, Lighthouse-instrumented chaos perf testing, AI-generated regression tests, and AI-driven test-quality audits</li>
+        <li>AI catches what humans miss &mdash; <code style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">audit-test-quality</code> surfaced a HIGH-severity bug in a hand-written test (an <code style="font-family: 'JetBrains Mono', monospace;">import</code> inside a function body, silently not running) that had been "passing CI" unnoticed</li>
         <li>Works with Cursor, Claude Code, Cline, Continue &mdash; any MCP client</li>
         <li>Hono-powered server &mdash; one of the fastest web frameworks benchmarked</li>
         <li>OpenAPI 3.x native + Simple Schema for AI-prompt-friendly prototyping</li>
@@ -781,7 +782,7 @@
       <div class="section-label">// real prompts from mcp-prompts.md</div>
       <h2 class="slide-title">Live AI Demo <span class="accent">Script</span></h2>
       <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem;">
-        Every beat is a verbatim prompt from <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">mockkit-enterprise-demo/scenarios/mcp-prompts.md</span> &mdash; tested across 19 enterprise scenarios.
+        Every beat is a verbatim prompt from <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">mockkit-enterprise-demo/scenarios/mcp-prompts.md</span> &mdash; tested across 20 enterprise scenarios.
       </p>
       <div class="demo-beats">
         <div class="demo-beat">
@@ -853,7 +854,7 @@
         </div>
       </div>
       <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 1.5rem; text-align: center;">
-        Full prompt library: 19 scenarios + 8 combined workflows + 7 built-in MCP prompts (incl. record-flow-as-test) &mdash; <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">scenarios/mcp-prompts.md</span>
+        Full prompt library: 20 scenarios + 8 combined workflows + 8 built-in MCP prompts (incl. record-flow-as-test, audit-test-quality) &mdash; <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">scenarios/mcp-prompts.md</span>
       </p>
     </div>
   </section>
