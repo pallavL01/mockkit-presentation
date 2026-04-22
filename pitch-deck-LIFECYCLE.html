@@ -712,14 +712,14 @@
         <span class="prompt">npm install -g @up/mockkit</span><br><br>
         <span class="comment"># 2. add MCP server (one-time per AI client)</span><br>
         <span class="prompt">echo</span> <span class="string">'{"mcpServers":{"mockkit":{"command":"npx","args":["@up/mockkit-mcp"]}}}'</span> <span class="prompt">&gt;</span> .mcp.json<br><br>
-        <span class="comment"># 3. clone the skills (or wait for npm package)</span><br>
-        <span class="prompt">git clone</span> github.com/pallavL01/mockkit && <span class="prompt">cp -r</span> mockkit/.agents .
+        <span class="comment"># 3. drop the AgentSkills into your repo</span><br>
+        <span class="prompt">cp -r</span> .agents .
       </div>
       <p style="margin-top: 1.5rem; font-size: 1.1rem; color: var(--text-body);">
         Then say: <em style="color: var(--accent); font-style: normal;">"Stand up a mock for ./api.yaml and build the IncidentList component end-to-end."</em>
       </p>
       <p style="margin-top: 2rem; color: var(--text-dim); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace;">
-        github.com/pallavL01/mockkit &nbsp;·&nbsp; agentskills.io
+        agentskills.io
       </p>
     </div>
   </section>
