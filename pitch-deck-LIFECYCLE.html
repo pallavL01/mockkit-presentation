@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MockKit — The Full-Lifecycle Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --accent: #00F5FF;
+    --accent2: #A78BFA;
+    --text: #FFFFFF;
+    --text-dim: #9ca3af;
+    --text-body: #CBD5E1;
+  }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 2rem;
+    background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  nav .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.08em;
+  }
+  nav .logo span.brand { color: var(--accent); }
+  nav .logo .tag {
+    color: var(--text-dim); font-size: 0.7rem; letter-spacing: 0.15em;
+    margin-left: 0.5rem; font-family: 'JetBrains Mono', monospace;
+  }
+  nav .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem; color: var(--text-dim);
+  }
+  nav .controls {
+    display: flex; align-items: center; gap: 1rem;
+    font-size: 0.75rem; color: var(--text-dim);
+  }
+  nav .controls kbd {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  }
+  .notes-toggle {
+    background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim); padding: 4px 10px; border-radius: 6px;
+    font-size: 0.75rem; cursor: pointer; font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+  }
+  .notes-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .notes-toggle.active { border-color: var(--accent); color: var(--accent); background: rgba(0,245,255,0.08); }
+
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: var(--accent); z-index: 101; transition: width 0.3s;
+  }
+
+  /* ── Slides ── */
+  .slides { scroll-snap-type: y mandatory; overflow-y: scroll; height: 100vh; }
+  .slide {
+    scroll-snap-align: start;
+    min-height: 100vh; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 5rem 2rem 3rem; position: relative;
+  }
+  .slide-inner {
+    max-width: 1100px; width: 100%;
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .slide-inner.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── Speaker Notes Panel ── */
+  .speaker-notes {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 99;
+    background: #0a0a0a; border-top: 1px solid rgba(0,245,255,0.15);
+    padding: 1.25rem 2rem;
+    transform: translateY(100%); transition: transform 0.3s ease;
+    max-height: 30vh; overflow-y: auto;
+  }
+  .speaker-notes.show { transform: translateY(0); }
+  .speaker-notes .note-section {
+    font-size: 0.75rem; color: var(--accent); text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .speaker-notes .note-text {
+    font-size: 0.95rem; color: var(--text-body); line-height: 1.7;
+    max-width: 800px;
+  }
+  .speaker-notes .note-text em { color: var(--accent); font-style: normal; }
+  .speaker-notes .note-text strong { color: var(--text); }
+  .speaker-notes .note-text .pause {
+    display: inline-block; color: var(--text-dim); font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 0.25rem; opacity: 0.6;
+  }
+  .speaker-notes .note-meta {
+    margin-top: 0.75rem; font-size: 0.7rem; color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Typography ── */
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    letter-spacing: 0.04em; line-height: 0.95;
+    text-transform: uppercase;
+  }
+  .hero-title .accent { color: var(--accent); }
+  .section-label {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    color: var(--accent); margin-bottom: 1.25rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .slide-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+    letter-spacing: 0.03em; line-height: 1;
+    text-transform: uppercase; margin-bottom: 1.5rem;
+  }
+  .slide-title .accent { color: var(--accent); }
+  .slide-title .accent2 { color: var(--accent2); }
+  .body-text {
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    color: var(--text-body); line-height: 1.7;
+    max-width: 700px;
+  }
+  .body-text strong { color: var(--text); font-weight: 600; }
+
+  .big-quote {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    letter-spacing: 0.02em; line-height: 1.15;
+    text-transform: uppercase;
+    border-left: 4px solid var(--accent);
+    padding-left: 1.5rem; max-width: 900px;
+  }
+  .big-stat {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 12vw, 10rem);
+    color: var(--accent); letter-spacing: 0.02em; line-height: 0.9;
+  }
+  .stat-caption {
+    font-size: 1.15rem; color: var(--text-dim); margin-top: 0.75rem; max-width: 600px;
+  }
+
+  /* ── List ── */
+  .point-list { list-style: none; margin: 1.5rem 0; }
+  .point-list li {
+    padding: 0.6rem 0; font-size: 1.1rem; color: var(--text-body);
+    display: flex; align-items: flex-start; gap: 0.75rem; line-height: 1.5;
+  }
+  .point-list li::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0; margin-top: 0.55rem;
+  }
+
+  /* ── Lifecycle Map ── */
+  .lifecycle-map {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+    margin: 2.5rem 0;
+    position: relative;
+  }
+  .lifecycle-map::before {
+    content: ''; position: absolute;
+    top: 24px; left: 8%; right: 8%; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0.4;
+  }
+  .lifecycle-phase {
+    text-align: center; position: relative; padding: 0 0.5rem;
+  }
+  .lifecycle-phase .dot {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem;
+    color: var(--accent); position: relative; z-index: 1;
+  }
+  .lifecycle-phase .when {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .lifecycle-phase h4 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .lifecycle-phase p {
+    font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;
+  }
+  .lifecycle-phase .skill {
+    margin-top: 0.6rem; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; color: var(--accent);
+  }
+
+  /* ── Three Column ── */
+  .three-col {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem; margin: 2rem 0;
+  }
+  .col-card {
+    padding: 1.5rem 1.75rem; border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .col-card h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 0.75rem;
+  }
+  .col-card p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.6; }
+  .col-card .skill-tag {
+    display: inline-block; margin-top: 0.75rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    padding: 2px 8px; border-radius: 4px;
+    background: rgba(0,245,255,0.08); color: var(--accent);
+    border: 1px solid rgba(0,245,255,0.2);
+  }
+
+  /* ── Code / Chat ── */
+  .code-block {
+    background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 1.25rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+    margin: 1.5rem 0;
+    overflow-x: auto; line-height: 1.6;
+  }
+  .code-block .prompt { color: var(--accent); }
+  .code-block .comment { color: var(--text-dim); }
+  .code-block .key { color: #ec4899; }
+  .code-block .string { color: #fbbf24; }
+
+  .chat-block {
+    background: var(--surface); border: 1px solid rgba(0,245,255,0.12);
+    border-radius: 12px; padding: 1.5rem 1.75rem;
+    margin: 1rem 0; max-width: 900px;
+  }
+  .chat-row { display: flex; gap: 1rem; margin-bottom: 0.75rem; align-items: flex-start; }
+  .chat-row:last-child { margin-bottom: 0; }
+  .chat-who {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+    flex-shrink: 0; width: 60px; padding-top: 0.2rem;
+  }
+  .chat-row.user .chat-who { color: var(--accent); }
+  .chat-row.ai .chat-who { color: var(--accent2); }
+  .chat-msg {
+    font-size: 0.95rem; color: var(--text-body); line-height: 1.6;
+  }
+  .chat-msg code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+    background: var(--surface2); padding: 1px 6px; border-radius: 4px;
+    color: var(--accent);
+  }
+
+  /* ── Compare two-col ── */
+  .compare {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0;
+  }
+  .compare-col { padding: 1.5rem; border-radius: 12px; }
+  .compare-col.before { background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); }
+  .compare-col.after  { background: rgba(0,245,255, 0.06); border: 1px solid rgba(0,245,255, 0.2); }
+  .compare-col h4 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem;
+    letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .compare-col.before h4 { color: #ef4444; }
+  .compare-col.after  h4 { color: var(--accent); }
+  .compare-col ul { list-style: none; }
+  .compare-col li {
+    padding: 0.4rem 0 0.4rem 1rem; font-size: 0.92rem;
+    color: var(--text-body); line-height: 1.5; position: relative;
+  }
+  .compare-col li::before {
+    content: '→'; position: absolute; left: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .compare-col.before li::before { color: #ef4444; }
+  .compare-col.after  li::before { color: var(--accent); }
+
+  /* ── Stack diagram ── */
+  .stack {
+    margin: 2rem 0; max-width: 800px;
+  }
+  .stack-layer {
+    padding: 1rem 1.5rem; margin-bottom: 0.5rem;
+    border-radius: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--surface);
+  }
+  .stack-layer.skill { border-color: rgba(0,245,255,0.3); background: rgba(0,245,255,0.04); }
+  .stack-layer.mcp   { border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.04); }
+  .stack-layer.core  { border-color: rgba(255,255,255,0.15); }
+  .stack-layer .label {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .stack-layer .desc {
+    font-size: 0.85rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
+  }
+
+</style>
+</head>
+<body>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  PITCH DECK — LIFECYCLE STORY
+
+  THESIS:
+    The dev lifecycle has many phases. Most tools cover one slice. MockKit
+    covers all five — and the SAME artifact (a recording / spec) flows
+    from sketch through CI through maintenance. AgentSkills make every
+    phase invokable in plain language: developers describe intent, the
+    AI activates the right skill, the workflow runs.
+
+  AUDIENCE:
+    Engineering leaders, platform teams, AI-first devs already using
+    Claude Code / Cursor / Copilot / Gemini CLI.
+
+  DURATION: ~10-12 minutes.
+
+  KEY THROUGHLINE:
+    "One artifact. Whole lifecycle." — every phase produces the input
+    the next phase needs. No rebuilds, no handoffs, no fixture rot.
+
+  KEY REVEAL (slide 11):
+    AgentSkills make it tool-portable — Claude Code, Cursor, Copilot,
+    Gemini CLI, 30+ clients all auto-discover the same skills.
+═══════════════════════════════════════════════════════════════════════
+-->
+
+<nav>
+  <div class="logo">MOCK<span class="brand">KIT</span><span class="tag">FULL-LIFECYCLE</span></div>
+  <div class="slide-counter" id="counter">01 / 13</div>
+  <div class="controls">
+    <button class="notes-toggle" id="notesBtn" title="Toggle speaker notes (N)">Notes</button>
+    <span><kbd>N</kbd> notes</span>
+    <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate</span>
+  </div>
+</nav>
+
+<div class="progress-bar" id="progress" style="width: 0%"></div>
+
+<div class="speaker-notes" id="notesPanel">
+  <div class="note-section" id="noteSection"></div>
+  <div class="note-text" id="noteText"></div>
+  <div class="note-meta" id="noteMeta"></div>
+</div>
+
+<div class="slides" id="slides">
+
+  <!-- ═══ SLIDE 1: HOOK ═══ -->
+  <section class="slide" id="slide-0"
+    data-note-section="1. THE HOOK — 60 seconds"
+    data-note-meta="TONE: Conversational, slightly accusatory. PACE: Slow. Let the count land."
+    data-note="Quick show of hands &mdash; how many tools touch your code between the spec and the merge button? <span class='pause'>[PAUSE]</span> Let's count. <span class='pause'>[PAUSE]</span> Spec viewer. Mock server. Postman or curl. Frontend dev server. MSW or some test stub. Playwright. CI runner. Coverage tool. Test linter. Chaos tool if you're fancy. <span class='pause'>[PAUSE]</span> That's ten. Ten things, ten interfaces, ten places the contract gets re-typed. <span class='pause'>[PAUSE]</span> Now &mdash; how does your AI assistant see all that? <span class='pause'>[PAUSE]</span> It doesn't. It sees ten disconnected text editors. Each phase, it has to re-learn what your API looks like. <span class='pause'>[BEAT]</span> That's the gap we're going to close.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// the question</div>
+      <h1 class="hero-title">
+        Your dev lifecycle has<br><span class="accent">12 tools.</span><br>Your AI sees 12 text editors.
+      </h1>
+      <p style="margin-top: 2rem; color: var(--text-dim); font-size: 0.95rem; letter-spacing: 0.05em;">
+        Pallav Laskar &mdash; MockKit
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 2: THE PAIN — FRAGMENTATION ═══ -->
+  <section class="slide" id="slide-1"
+    data-note-section="2. THE PAIN — 90 seconds"
+    data-note-meta="TONE: Recognize the pain. PACE: Stack the friction quickly."
+    data-note="Here's what fragmentation actually costs. <span class='pause'>[PAUSE]</span> Every phase rebuilds the contract. The frontend dev hand-writes a fixture. The QA engineer writes another fixture for tests. The platform team writes a third in CI. <span class='pause'>[PAUSE]</span> Every handoff is a translation. Spec to mock to test to staging. Each translation drops information &mdash; the field name changes, the enum reorders, the timestamp format diverges. <span class='pause'>[PAUSE]</span> And every time the spec changes, you redo all of it. The fixture rot is real. <span class='pause'>[PAUSE]</span> Your AI is downstream of all of this. It can't help if it doesn't know the contract. And the contract is in twelve different files written by six different people.">
+    <div class="slide-inner">
+      <div class="section-label">// the pain</div>
+      <h2 class="slide-title">Fragmentation has a<br><span class="accent">tax.</span></h2>
+      <ul class="point-list">
+        <li>Every phase rebuilds the same contract: spec, mock, fixture, test stub, CI seed</li>
+        <li>Every handoff drops information &mdash; field renames, enum shifts, format drift</li>
+        <li>Spec changes? Redo the rebuild in five places. Welcome to fixture rot.</li>
+        <li>Your AI sees one phase at a time. It can't reason across the lifecycle.</li>
+        <li>The verification gap isn't speed &mdash; it's the missing connective tissue</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 3: THE INSIGHT ═══ -->
+  <section class="slide" id="slide-2"
+    data-note-section="3. THE INSIGHT — 60 seconds"
+    data-note-meta="TONE: Quietly. This is the unlock. PACE: Stop after the question."
+    data-note="Step back from the tools for a second. <span class='pause'>[PAUSE]</span> What is the actual artifact that flows through your lifecycle? <span class='pause'>[PAUSE]</span> It's a request. A response. A contract between caller and callee. <span class='pause'>[PAUSE]</span> Every phase needs the same thing: <em>this request looks like that response.</em> <span class='pause'>[PAUSE]</span> So why are we rebuilding it five times? <span class='pause'>[BEAT]</span> What if we captured it once &mdash; and let it flow through all five phases unchanged?">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// the insight</div>
+      <div class="big-stat">1</div>
+      <p class="stat-caption">Artifact &mdash; a recording &mdash; should flow from spec through CI through maintenance. Unchanged.</p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 4: THE PIVOT ═══ -->
+  <section class="slide" id="slide-3"
+    data-note-section="4. THE PIVOT — 30 seconds"
+    data-note-meta="TONE: Lift. PACE: Energetic but unhurried."
+    data-note="That's the MockKit thesis in one line. <span class='pause'>[PAUSE]</span> One artifact. Whole lifecycle. <span class='pause'>[PAUSE]</span> The recording your frontend dev creates on Day 0 becomes the test fixture in Week 2 becomes the regression suite forever. Same file. Different lens. <span class='pause'>[PAUSE]</span> Let me show you what that actually looks like.">
+    <div class="slide-inner">
+      <div class="section-label">// the pivot</div>
+      <div class="big-quote">
+        One artifact.<br>Whole lifecycle.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 5: THE LIFECYCLE MAP ═══ -->
+  <section class="slide" id="slide-4"
+    data-note-section="5. THE LIFECYCLE — 90 seconds"
+    data-note-meta="TONE: Confident, walking through. PACE: One phase at a time, don't rush. KEY: each phase produces the input the next needs."
+    data-note="Five phases. <span class='pause'>[PAUSE]</span> Day 0 you have a spec. Stand up a mock. <span class='pause'>[PAUSE]</span> Week 1 backend ships. Capture real responses. <span class='pause'>[PAUSE]</span> Day to day &mdash; develop offline. Plane mode, no VPN, no shared staging. <span class='pause'>[PAUSE]</span> Pre-merge &mdash; tests write themselves. Auto-generated Playwright spec from a UI flow. <span class='pause'>[PAUSE]</span> Forever &mdash; quality stays. Audit catches test rot, chaos verifies error paths. <span class='pause'>[PAUSE]</span> Every phase produces the input the next phase needs. No rebuilds. No translation. No drift. <span class='pause'>[BEAT]</span> Now let's go through each one.">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// the arc</div>
+      <h2 class="slide-title">Five phases.<br><span class="accent">One artifact.</span></h2>
+      <div class="lifecycle-map">
+        <div class="lifecycle-phase">
+          <div class="dot">1</div>
+          <div class="when">DAY 0</div>
+          <h4>Spec → Mock</h4>
+          <p>OpenAPI in. Live server out. 10 seconds.</p>
+          <div class="skill">/spec-mock</div>
+        </div>
+        <div class="lifecycle-phase">
+          <div class="dot">2</div>
+          <div class="when">WEEK 1</div>
+          <h4>Capture</h4>
+          <p>Backend ships. Record real responses. Spec drift caught at capture.</p>
+          <div class="skill">/record-api</div>
+        </div>
+        <div class="lifecycle-phase">
+          <div class="dot">3</div>
+          <div class="when">DAY-TO-DAY</div>
+          <h4>Offline Dev</h4>
+          <p>Browser extension serves recordings. No VPN. No staging.</p>
+          <div class="skill">/setup-msw</div>
+        </div>
+        <div class="lifecycle-phase">
+          <div class="dot">4</div>
+          <div class="when">PRE-MERGE</div>
+          <h4>Tests Write Themselves</h4>
+          <p>Describe a flow. Get a Playwright spec. Self-cleaning.</p>
+          <div class="skill">/record-flow-as-test</div>
+        </div>
+        <div class="lifecycle-phase">
+          <div class="dot">5</div>
+          <div class="when">FOREVER</div>
+          <h4>Quality Stays</h4>
+          <p>Audit catches test rot. Chaos stresses error paths.</p>
+          <div class="skill">/audit-tests</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 6: PHASE 1 — SPEC TO MOCK ═══ -->
+  <section class="slide" id="slide-5"
+    data-note-section="6. DAY 0: SPEC → MOCK — 60 seconds"
+    data-note-meta="TONE: Demo-flavored. PACE: Quick — this is the easy part."
+    data-note="Day 0. You have a spec, no backend yet. <span class='pause'>[PAUSE]</span> Old way: scaffold a mock service in Express. Hand-write handlers. Deploy somewhere. Hours. <span class='pause'>[PAUSE]</span> MockKit way: one command. Or one sentence to the AI &mdash; and it activates the spec-mock skill, validates the spec, starts the server, confirms health, hands you the URL. <span class='pause'>[PAUSE]</span> Frontend dev is unblocked in under a minute.">
+    <div class="slide-inner">
+      <div class="section-label">// phase 1 / day 0</div>
+      <h2 class="slide-title">Spec in.<br><span class="accent">Live API out.</span></h2>
+      <div class="chat-block">
+        <div class="chat-row user">
+          <div class="chat-who">DEV</div>
+          <div class="chat-msg">Stand up a mock from <code>./api.yaml</code></div>
+        </div>
+        <div class="chat-row ai">
+          <div class="chat-who">AI</div>
+          <div class="chat-msg">[activates <code>/spec-mock</code>] &mdash; validated 12 routes, server live at <code>http://localhost:9876</code>, health OK. Try <code>curl localhost:9876/users</code>.</div>
+        </div>
+      </div>
+      <p class="body-text" style="margin-top: 1rem;">
+        Same outcome via CLI: <code style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">mockkit start -s api.yaml</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 7: PHASE 2 — CAPTURE ═══ -->
+  <section class="slide" id="slide-6"
+    data-note-section="7. WEEK 1: CAPTURE — 60 seconds"
+    data-note-meta="TONE: Practical. PACE: Steady."
+    data-note="Week one. Backend ships their first endpoints. <span class='pause'>[PAUSE]</span> You don't throw away the mock &mdash; you capture the real responses next to it. The recording becomes the source of truth. <span class='pause'>[PAUSE]</span> If the real API drifts from the spec, you catch it at capture time, not in QA. Templatize, and JWTs and timestamps become placeholders &mdash; the recording isn't pinned to one moment. <span class='pause'>[PAUSE]</span> Same artifact, but now backed by reality.">
+    <div class="slide-inner">
+      <div class="section-label">// phase 2 / week 1</div>
+      <h2 class="slide-title">Backend ships.<br><span class="accent">Capture once.</span></h2>
+      <div class="compare">
+        <div class="compare-col before">
+          <h4>Without MockKit</h4>
+          <ul>
+            <li>Frontend devs hand-update fixtures when API changes</li>
+            <li>Spec drift discovered in QA &mdash; weeks late</li>
+            <li>JWTs and timestamps in fixtures expire / break replays</li>
+            <li>"Works on my machine" because everyone has different fixtures</li>
+          </ul>
+        </div>
+        <div class="compare-col after">
+          <h4>With MockKit</h4>
+          <ul>
+            <li>One <code style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">mockkit record</code> command captures real responses</li>
+            <li>Spec drift caught at capture &mdash; immediate signal</li>
+            <li><code style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">--templatize</code> makes recordings reusable across time</li>
+            <li>One file, committed to git &mdash; everyone has the same fixture</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 8: PHASE 3 — OFFLINE DEV ═══ -->
+  <section class="slide" id="slide-7"
+    data-note-section="8. DAY-TO-DAY: OFFLINE — 45 seconds"
+    data-note-meta="TONE: Lighter. This is the dev quality-of-life bit. PACE: Quick."
+    data-note="Day to day. Plane mode. Coffee shop with bad wifi. Staging is down. Your VPN expired. <span class='pause'>[PAUSE]</span> Doesn't matter. The Chrome extension serves recordings directly to the browser. The MSW integration does the same thing in tests. The recording &mdash; the same one from Week 1 &mdash; is now your local backend. <span class='pause'>[BEAT]</span> Same artifact. Different lens.">
+    <div class="slide-inner">
+      <div class="section-label">// phase 3 / day-to-day</div>
+      <h2 class="slide-title">Develop<br><span class="accent">offline.</span></h2>
+      <div class="three-col">
+        <div class="col-card">
+          <h3>Chrome Extension</h3>
+          <p>Browser-side interception. The extension serves your recordings directly &mdash; no proxy, no VPN. Works on planes.</p>
+          <div class="skill-tag">offline mode</div>
+        </div>
+        <div class="col-card">
+          <h3>MSW Integration</h3>
+          <p>For React/Next.js apps &mdash; MSW handlers generated from the spec. In-browser mocking for component dev and tests.</p>
+          <div class="skill-tag">/setup-msw</div>
+        </div>
+        <div class="col-card">
+          <h3>Server Replay</h3>
+          <p>Need a real HTTP server? <code style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">mockkit replay -r recording.json</code> &mdash; deterministic, instant.</p>
+          <div class="skill-tag">/record-api</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 9: PHASE 4 — TESTS WRITE THEMSELVES ═══ -->
+  <section class="slide" id="slide-8"
+    data-note-section="9. PRE-MERGE: TESTS — 90 seconds"
+    data-note-meta="TONE: This is the killer feature. Slow it down. PACE: Let the prompt-to-test transformation land."
+    data-note="Pre-merge. <span class='pause'>[PAUSE]</span> You built the component. It works. Now you need a Playwright test. Old way: stare at the screen, write 60 lines of test boilerplate, debug the selectors, deal with timing. <span class='pause'>[PAUSE]</span> New way: describe the flow in one sentence. <span class='pause'>[PAUSE]</span> The AI activates record-flow-as-test. It composes two MCP servers &mdash; MockKit for the deterministic backend, Playwright for the browser. It drives the app, captures aria snapshots after each step, synthesizes a spec file, writes it to disk. With cleanup baked in. <span class='pause'>[PAUSE]</span> You review the diff. Commit. Done. <span class='pause'>[BEAT]</span> The test you wouldn't have written, written.">
+    <div class="slide-inner">
+      <div class="section-label">// phase 4 / pre-merge</div>
+      <h2 class="slide-title">Tests<br><span class="accent">write themselves.</span></h2>
+      <div class="chat-block">
+        <div class="chat-row user">
+          <div class="chat-who">DEV</div>
+          <div class="chat-msg">Record a Playwright test for: click Create Incident, fill Title with "DB outage", set severity high, submit, verify it shows in the list</div>
+        </div>
+        <div class="chat-row ai">
+          <div class="chat-who">AI</div>
+          <div class="chat-msg">[activates <code>/record-flow-as-test</code>]<br>
+            &rarr; starts MockKit on api.yaml (seed 42)<br>
+            &rarr; drives app via Playwright MCP<br>
+            &rarr; captures aria snapshots per step<br>
+            &rarr; synthesizes <code>tests/create-incident.spec.ts</code> (18 lines, self-cleaning)<br>
+            &rarr; runs once: passed in 1.4s
+          </div>
+        </div>
+      </div>
+      <p class="body-text" style="margin-top: 1rem; font-size: 0.95rem;">
+        <strong>Self-cleaning</strong> = the generated test deletes the entity it created in <code style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">afterEach</code>. No suite pollution. No flaky parallelism.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 10: PHASE 5 — QUALITY STAYS ═══ -->
+  <section class="slide" id="slide-9"
+    data-note-section="10. FOREVER: QUALITY STAYS — 60 seconds"
+    data-note-meta="TONE: This is the maintenance reveal. PACE: Steady."
+    data-note="Forever. <span class='pause'>[PAUSE]</span> Six months from now your test suite has 200 specs, three different selector styles, half a dozen hardcoded waits. Test rot is real. <span class='pause'>[PAUSE]</span> The audit-tests skill walks the suite, finds nine fragility patterns &mdash; brittle selectors, missing cleanup, hardcoded counts, networkidle on SSE pages, vacuous assertions. Reports each finding with the exact fix. <span class='pause'>[PAUSE]</span> We've seen this take a 13-second flaky suite down to 1.9 seconds, all green. Not by deleting tests &mdash; by removing test theater. <span class='pause'>[PAUSE]</span> Then chaos and circuit breaker stress the error paths. Same recording, same artifact &mdash; now you're verifying resilience.">
+    <div class="slide-inner">
+      <div class="section-label">// phase 5 / forever</div>
+      <h2 class="slide-title">Quality<br><span class="accent">stays.</span></h2>
+      <div class="three-col">
+        <div class="col-card">
+          <h3>Audit Tests</h3>
+          <p>Walks 9 fragility patterns &mdash; brittle selectors, missing cleanup, hardcoded counts, vacuous assertions. Reports + auto-fixes.</p>
+          <div class="skill-tag">/audit-tests</div>
+        </div>
+        <div class="col-card">
+          <h3>Chaos</h3>
+          <p>Inject 5xx, latency, timeouts. Verify your error handling actually handles errors. Real-time toggle via runtime API.</p>
+          <div class="skill-tag">/chaos</div>
+        </div>
+        <div class="col-card">
+          <h3>Circuit Breaker</h3>
+          <p>Per-endpoint failure thresholds + cooldowns. Test fallback paths under realistic resilience patterns.</p>
+          <div class="skill-tag">/circuit-breaker</div>
+        </div>
+      </div>
+      <p class="body-text" style="margin-top: 0.5rem; font-size: 0.95rem;">
+        Real result: enterprise demo suite went <strong>13s &rarr; 1.9s</strong> with audit-tests, all green. Not by deleting tests &mdash; by removing test theater.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 11: THE SKILLS LAYER REVEAL ═══ -->
+  <section class="slide" id="slide-10"
+    data-note-section="11. THE SKILLS LAYER — 90 seconds"
+    data-note-meta="TONE: Architectural reveal. This is the 'how it works'. PACE: Measured. Explain the stack."
+    data-note="So how does this all hang together? <span class='pause'>[PAUSE]</span> Three layers. <span class='pause'>[PAUSE]</span> Bottom: the MockKit core &mdash; CLI, server, recording engine, chaos. The actual mocking. <span class='pause'>[PAUSE]</span> Middle: the MCP server. Twelve structured tools, thirteen prompts &mdash; this is what makes MockKit AI-callable. <span class='pause'>[PAUSE]</span> Top: AgentSkills. Eight atomic skills wrapping the prompts, four workflow skills composing them. <span class='pause'>[PAUSE]</span> The crucial bit &mdash; AgentSkills is an open standard. Claude Code, Cursor, Copilot, Gemini CLI, Codex, JetBrains, thirty-plus clients all auto-discover the same skill files. <span class='pause'>[PAUSE]</span> Write the skill once. Every dev on every AI tool gets it for free.">
+    <div class="slide-inner">
+      <div class="section-label">// the architecture</div>
+      <h2 class="slide-title">Three layers.<br><span class="accent2">One contract.</span></h2>
+      <div class="stack">
+        <div class="stack-layer skill">
+          <div>
+            <div class="label">AgentSkills</div>
+            <div class="desc">.agents/skills/ &mdash; auto-discovered by 30+ AI clients</div>
+          </div>
+          <div class="desc">8 atomic + 4 workflow</div>
+        </div>
+        <div class="stack-layer mcp">
+          <div>
+            <div class="label">MCP Server</div>
+            <div class="desc">@up/mockkit-mcp &mdash; tools + prompts callable from any MCP client</div>
+          </div>
+          <div class="desc">12 tools + 13 prompts</div>
+        </div>
+        <div class="stack-layer core">
+          <div>
+            <div class="label">MockKit Core</div>
+            <div class="desc">CLI + Hono server + recording engine + chaos + circuit breaker</div>
+          </div>
+          <div class="desc">npm install -g @up/mockkit</div>
+        </div>
+      </div>
+      <p class="body-text" style="margin-top: 1rem; font-size: 0.95rem;">
+        AgentSkills (<a href="https://agentskills.io" style="color: var(--accent);">agentskills.io</a>) is an open standard. Write the skill once &mdash; every dev on every AI tool gets it.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 12: WORKFLOW COMPOSITION ═══ -->
+  <section class="slide" id="slide-11"
+    data-note-section="12. WORKFLOW COMPOSITION — 60 seconds"
+    data-note-meta="TONE: Show, don't tell. PACE: Walk through the prompt activation."
+    data-note="And once the atomics exist, you compose. <span class='pause'>[PAUSE]</span> Ship-feature isn't a new skill from scratch &mdash; it's three atomics in a row, with the body of the skill telling the model the order. <span class='pause'>[PAUSE]</span> Spec-to-prod is the whole arc &mdash; eight skills, ten minutes from spec to PR-ready. <span class='pause'>[PAUSE]</span> The dev doesn't memorize skill names. They describe what they want. The model picks the right composition. <span class='pause'>[BEAT]</span> That's the difference between a CLI flag soup and a real workflow platform.">
+    <div class="slide-inner">
+      <div class="section-label">// composition</div>
+      <h2 class="slide-title">Workflows<br><span class="accent">compose atomics.</span></h2>
+      <div class="three-col">
+        <div class="col-card">
+          <h3>/build-component</h3>
+          <p>spec-mock &rarr; setup-msw &rarr; scaffold the component against the live mock</p>
+          <div class="skill-tag">2 atomics</div>
+        </div>
+        <div class="col-card">
+          <h3>/ship-feature</h3>
+          <p>build-component &rarr; record-flow-as-test &rarr; audit-tests. Spec to merge-ready PR.</p>
+          <div class="skill-tag">3 atomics</div>
+        </div>
+        <div class="col-card">
+          <h3>/spec-to-prod</h3>
+          <p>The whole arc. Spec &rarr; mock &rarr; component &rarr; test &rarr; chaos &rarr; audit. ~10 min.</p>
+          <div class="skill-tag">8 atomics</div>
+        </div>
+      </div>
+      <div class="chat-block" style="margin-top: 1.5rem;">
+        <div class="chat-row user">
+          <div class="chat-who">DEV</div>
+          <div class="chat-msg">Implement the IncidentList component end-to-end from <code>./api.yaml</code></div>
+        </div>
+        <div class="chat-row ai">
+          <div class="chat-who">AI</div>
+          <div class="chat-msg">[activates <code>/ship-feature</code>] &rarr; mock up &rarr; MSW wired &rarr; component scaffolded &rarr; flow recorded as test &rarr; audited &rarr; PR-ready summary in 9 min</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 13: CTA ═══ -->
+  <section class="slide" id="slide-12"
+    data-note-section="13. CTA — 30 seconds"
+    data-note-meta="TONE: Clear. PACE: Land each line."
+    data-note="Three commands to get started. <span class='pause'>[PAUSE]</span> Install MockKit. Add the MCP server to your AI client. Open this repo &mdash; the skills auto-discover. <span class='pause'>[PAUSE]</span> Then describe a feature. The AI handles the rest. <span class='pause'>[BEAT]</span> Questions?">
+    <div class="slide-inner" style="text-align: center;">
+      <div class="section-label">// get started</div>
+      <h2 class="slide-title">Three commands.<br><span class="accent">Whole lifecycle.</span></h2>
+      <div class="code-block" style="text-align: left; max-width: 700px; margin: 2rem auto;">
+        <span class="comment"># 1. install</span><br>
+        <span class="prompt">npm install -g @up/mockkit</span><br><br>
+        <span class="comment"># 2. add MCP server (one-time per AI client)</span><br>
+        <span class="prompt">echo</span> <span class="string">'{"mcpServers":{"mockkit":{"command":"npx","args":["@up/mockkit-mcp"]}}}'</span> <span class="prompt">&gt;</span> .mcp.json<br><br>
+        <span class="comment"># 3. clone the skills (or wait for npm package)</span><br>
+        <span class="prompt">git clone</span> github.com/pallavL01/mockkit && <span class="prompt">cp -r</span> mockkit/.agents .
+      </div>
+      <p style="margin-top: 1.5rem; font-size: 1.1rem; color: var(--text-body);">
+        Then say: <em style="color: var(--accent); font-style: normal;">"Stand up a mock for ./api.yaml and build the IncidentList component end-to-end."</em>
+      </p>
+      <p style="margin-top: 2rem; color: var(--text-dim); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace;">
+        github.com/pallavL01/mockkit &nbsp;·&nbsp; agentskills.io
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide-inner');
+  const container = document.getElementById('slides');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const notesPanel = document.getElementById('notesPanel');
+  const notesBtn = document.getElementById('notesBtn');
+  const noteSection = document.getElementById('noteSection');
+  const noteText = document.getElementById('noteText');
+  const noteMeta = document.getElementById('noteMeta');
+  const total = slides.length;
+  let current = 0;
+  let notesVisible = false;
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateSlide(idx) {
+    current = idx;
+    counter.textContent = pad(idx + 1) + ' / ' + pad(total);
+    progress.style.width = ((idx + 1) / total * 100) + '%';
+    const section = document.getElementById('slide-' + idx);
+    if (section) {
+      noteSection.textContent = section.dataset.noteSection || '';
+      noteText.innerHTML = section.dataset.note || '';
+      noteMeta.textContent = section.dataset.noteMeta || '';
+    }
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        const idx = Array.from(slides).indexOf(e.target);
+        updateSlide(idx);
+      }
+    });
+  }, { threshold: 0.3, root: container });
+  slides.forEach(s => observer.observe(s));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      current = Math.min(current + 1, total - 1);
+      document.getElementById('slide-' + current).scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      current = Math.max(current - 1, 0);
+      document.getElementById('slide-' + current).scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+  });
+
+  container.addEventListener('scroll', () => {
+    current = Math.round(container.scrollTop / container.clientHeight);
+  });
+
+  function toggleNotes() {
+    notesVisible = !notesVisible;
+    notesPanel.classList.toggle('show', notesVisible);
+    notesBtn.classList.toggle('active', notesVisible);
+  }
+  notesBtn.addEventListener('click', toggleNotes);
+
+  setTimeout(() => { slides[0].classList.add('visible'); updateSlide(0); }, 100);
+</script>
+</body>
+</html>
