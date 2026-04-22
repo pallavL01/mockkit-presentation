@@ -300,6 +300,63 @@
   .compare-col.before li::before { color: #ef4444; }
   .compare-col.after  li::before { color: var(--accent); }
 
+  /* ── Architecture diagram ── */
+  .arch {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) minmax(360px, 1.6fr) minmax(200px, 1fr);
+    gap: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    align-items: stretch;
+  }
+  .arch-col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.15em;
+    color: var(--text-dim); text-transform: uppercase;
+    text-align: center; padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    grid-row: 1;
+  }
+  .arch-box {
+    border-radius: 8px; padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--surface);
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 56px; text-align: left;
+  }
+  .arch-box .name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem; letter-spacing: 0.04em;
+    text-transform: uppercase; line-height: 1.1;
+  }
+  .arch-box .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: var(--text-dim);
+    margin-top: 0.25rem; line-height: 1.4;
+  }
+  .arch-box.clients   { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.03); }
+  .arch-box.skill     { border-color: rgba(0,245,255,0.35); background: rgba(0,245,255,0.05); }
+  .arch-box.skill .name { color: var(--accent); }
+  .arch-box.mcp       { border-color: rgba(167,139,250,0.35); background: rgba(167,139,250,0.05); }
+  .arch-box.mcp .name { color: var(--accent2); }
+  .arch-box.core      { border-color: rgba(255,255,255,0.18); background: var(--surface); }
+  .arch-box.browser   { border-color: rgba(255,255,255,0.12); background: var(--surface); border-style: dashed; }
+  .arch-box.artifact  { border-color: rgba(0,245,255,0.25); background: rgba(0,245,255,0.03); }
+  .arch-box.artifact .name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-transform: none; letter-spacing: 0; }
+  .arch-box.app       { border-color: rgba(255,255,255,0.18); background: var(--surface); }
+  .arch-box.recording { border: 2px solid var(--accent); background: rgba(0,245,255,0.08); }
+  .arch-box.recording .name { color: var(--accent); font-weight: 700; }
+  .arch-arrow {
+    text-align: center; color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    line-height: 1; padding: 0.1rem 0;
+  }
+  .arch-arrow.down::before  { content: '↓'; font-size: 1.1rem; color: var(--accent); }
+  .arch-arrow.right::before { content: '→'; font-size: 1.1rem; color: var(--accent); }
+  .arch-arrow.left::before  { content: '←'; font-size: 1.1rem; color: var(--accent); }
+  .arch-arrow.dotted-right { color: var(--text-dim); font-size: 0.7rem; }
+  .arch-arrow.dotted-right::before { content: '⤍ reads'; color: var(--text-dim); font-size: 0.75rem; letter-spacing: 0.05em; }
+  .arch-spacer { min-height: 1px; }
+
   /* ── Stack diagram ── */
   .stack {
     margin: 2rem 0; max-width: 800px;
@@ -355,7 +412,7 @@
 
 <nav>
   <div class="logo">MOCK<span class="brand">KIT</span><span class="tag">FULL-LIFECYCLE</span></div>
-  <div class="slide-counter" id="counter">01 / 13</div>
+  <div class="slide-counter" id="counter">01 / 14</div>
   <div class="controls">
     <button class="notes-toggle" id="notesBtn" title="Toggle speaker notes (N)">Notes</button>
     <span><kbd>N</kbd> notes</span>
@@ -661,9 +718,103 @@
     </div>
   </section>
 
-  <!-- ═══ SLIDE 12: WORKFLOW COMPOSITION ═══ -->
+  <!-- ═══ SLIDE 12: ARCHITECTURE DIAGRAM ═══ -->
   <section class="slide" id="slide-11"
-    data-note-section="12. WORKFLOW COMPOSITION — 60 seconds"
+    data-note-section="12. ARCHITECTURE — 90 seconds"
+    data-note-meta="TONE: Walk left-to-right, top-to-bottom. PACE: Stop on the recording box. KEY: every arrow ends at the recording artifact."
+    data-note="Let me show you how it actually wires up. <span class='pause'>[PAUSE]</span> Top: developer types a prompt. <span class='pause'>[PAUSE]</span> Any AI client &mdash; Claude Code, Cursor, Copilot, Gemini &mdash; auto-discovers the AgentSkills in the repo. The model picks the right skill based on the prompt's description. <span class='pause'>[PAUSE]</span> Skills call into the MockKit MCP server &mdash; sometimes also Playwright MCP for browser-driven workflows. <span class='pause'>[PAUSE]</span> The MCP server is a thin wrapper. The actual mocking happens in MockKit Core &mdash; the CLI, the Hono server, the recording engine. <span class='pause'>[PAUSE]</span> The browser layer &mdash; Chrome extension and MSW &mdash; reads recordings directly. Alt path, no proxy needed. <span class='pause'>[PAUSE]</span> Now look at the right column. The spec is input. Tests are output. <strong>Recordings.json is the artifact every layer touches.</strong> <span class='pause'>[BEAT]</span> That's what 'one artifact, whole lifecycle' means at the wiring level.">
+    <div class="slide-inner">
+      <div class="section-label">// architecture</div>
+      <h2 class="slide-title">Every arrow ends at<br><span class="accent">the recording.</span></h2>
+
+      <div class="arch">
+        <!-- Header row -->
+        <div class="arch-col-label">CONSUMER</div>
+        <div class="arch-col-label">RUNTIME</div>
+        <div class="arch-col-label">ARTIFACTS (in git)</div>
+
+        <!-- Row 2: Clients -->
+        <div class="arch-spacer"></div>
+        <div class="arch-box clients">
+          <div class="name">AI Clients (30+)</div>
+          <div class="meta">Claude Code · Cursor · Copilot · Gemini CLI · Codex · ...</div>
+        </div>
+        <div class="arch-box artifact">
+          <div class="name">api.yaml</div>
+          <div class="meta">spec · input</div>
+        </div>
+
+        <!-- Arrow row -->
+        <div></div>
+        <div class="arch-arrow down">prompt &mdash; auto-activates skill</div>
+        <div class="arch-arrow dotted-right" style="text-align: left; padding-left: 0.5rem;"></div>
+
+        <!-- Row 3: Skills -->
+        <div class="arch-spacer"></div>
+        <div class="arch-box skill">
+          <div class="name">AgentSkills <span style="font-size: 0.65rem; opacity: 0.7;">.agents/skills/</span></div>
+          <div class="meta">8 atomic + 4 workflow · auto-discovered by client</div>
+        </div>
+        <div class="arch-box recording">
+          <div class="name">recordings.json</div>
+          <div class="meta">THE artifact &mdash; flows through every phase</div>
+        </div>
+
+        <!-- Arrow row -->
+        <div></div>
+        <div class="arch-arrow down">tool / prompt call</div>
+        <div></div>
+
+        <!-- Row 4: MCP -->
+        <div class="arch-spacer"></div>
+        <div class="arch-box mcp">
+          <div class="name">@up/mockkit-mcp <span style="font-size: 0.65rem; opacity: 0.7;">+ @playwright/mcp</span></div>
+          <div class="meta">12 tools · 13 prompts · configured in .mcp.json</div>
+        </div>
+        <div class="arch-box artifact">
+          <div class="name">tests/*.spec.ts</div>
+          <div class="meta">generated · output</div>
+        </div>
+
+        <!-- Arrow row -->
+        <div></div>
+        <div class="arch-arrow down">spawn / invoke</div>
+        <div></div>
+
+        <!-- Row 5: Core -->
+        <div class="arch-spacer"></div>
+        <div class="arch-box core">
+          <div class="name">MockKit Core <span style="font-size: 0.65rem; opacity: 0.7;">npm: @up/mockkit</span></div>
+          <div class="meta">CLI · Hono server · recording engine · chaos · circuit breaker</div>
+        </div>
+        <div class="arch-spacer"></div>
+
+        <!-- Arrow row -->
+        <div></div>
+        <div class="arch-arrow down">HTTP &nbsp;·&nbsp; reads/writes</div>
+        <div></div>
+
+        <!-- Row 6: App + Browser path -->
+        <div class="arch-box app">
+          <div class="name">App Under Test</div>
+          <div class="meta">browser or backend &mdash; HTTP to Core</div>
+        </div>
+        <div class="arch-box browser">
+          <div class="name">Browser Layer (alt)</div>
+          <div class="meta">Chrome Extension · MSW &mdash; reads recordings directly, no proxy</div>
+        </div>
+        <div class="arch-spacer"></div>
+      </div>
+
+      <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-dim); text-align: center;">
+        Full diagram + data-flow examples: <span style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">ARCHITECTURE.md</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ SLIDE 13: WORKFLOW COMPOSITION ═══ -->
+  <section class="slide" id="slide-12"
+    data-note-section="13. WORKFLOW COMPOSITION — 60 seconds"
     data-note-meta="TONE: Show, don't tell. PACE: Walk through the prompt activation."
     data-note="And once the atomics exist, you compose. <span class='pause'>[PAUSE]</span> Ship-feature isn't a new skill from scratch &mdash; it's three atomics in a row, with the body of the skill telling the model the order. <span class='pause'>[PAUSE]</span> Spec-to-prod is the whole arc &mdash; eight skills, ten minutes from spec to PR-ready. <span class='pause'>[PAUSE]</span> The dev doesn't memorize skill names. They describe what they want. The model picks the right composition. <span class='pause'>[BEAT]</span> That's the difference between a CLI flag soup and a real workflow platform.">
     <div class="slide-inner">
@@ -699,9 +850,9 @@
     </div>
   </section>
 
-  <!-- ═══ SLIDE 13: CTA ═══ -->
-  <section class="slide" id="slide-12"
-    data-note-section="13. CTA — 30 seconds"
+  <!-- ═══ SLIDE 14: CTA ═══ -->
+  <section class="slide" id="slide-13"
+    data-note-section="14. CTA — 30 seconds"
     data-note-meta="TONE: Clear. PACE: Land each line."
     data-note="Three commands to get started. <span class='pause'>[PAUSE]</span> Install MockKit. Add the MCP server to your AI client. Open this repo &mdash; the skills auto-discover. <span class='pause'>[PAUSE]</span> Then describe a feature. The AI handles the rest. <span class='pause'>[BEAT]</span> Questions?">
     <div class="slide-inner" style="text-align: center;">
