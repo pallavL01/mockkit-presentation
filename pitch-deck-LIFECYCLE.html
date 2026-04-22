@@ -723,92 +723,10 @@
     data-note-section="12. ARCHITECTURE — 90 seconds"
     data-note-meta="TONE: Walk left-to-right, top-to-bottom. PACE: Stop on the recording box. KEY: every arrow ends at the recording artifact."
     data-note="Let me show you how it actually wires up. <span class='pause'>[PAUSE]</span> Top: developer types a prompt. <span class='pause'>[PAUSE]</span> Any AI client &mdash; Claude Code, Cursor, Copilot, Gemini &mdash; auto-discovers the AgentSkills in the repo. The model picks the right skill based on the prompt's description. <span class='pause'>[PAUSE]</span> Skills call into the MockKit MCP server &mdash; sometimes also Playwright MCP for browser-driven workflows. <span class='pause'>[PAUSE]</span> The MCP server is a thin wrapper. The actual mocking happens in MockKit Core &mdash; the CLI, the Hono server, the recording engine. <span class='pause'>[PAUSE]</span> The browser layer &mdash; Chrome extension and MSW &mdash; reads recordings directly. Alt path, no proxy needed. <span class='pause'>[PAUSE]</span> Now look at the right column. The spec is input. Tests are output. <strong>Recordings.json is the artifact every layer touches.</strong> <span class='pause'>[BEAT]</span> That's what 'one artifact, whole lifecycle' means at the wiring level.">
-    <div class="slide-inner">
+    <div class="slide-inner" style="max-width: 1280px;">
       <div class="section-label">// architecture</div>
-      <h2 class="slide-title">Every arrow ends at<br><span class="accent">the recording.</span></h2>
-
-      <div class="arch">
-        <!-- Header row -->
-        <div class="arch-col-label">CONSUMER</div>
-        <div class="arch-col-label">RUNTIME</div>
-        <div class="arch-col-label">ARTIFACTS (in git)</div>
-
-        <!-- Row 2: Clients -->
-        <div class="arch-spacer"></div>
-        <div class="arch-box clients">
-          <div class="name">AI Clients (30+)</div>
-          <div class="meta">Claude Code · Cursor · Copilot · Gemini CLI · Codex · ...</div>
-        </div>
-        <div class="arch-box artifact">
-          <div class="name">api.yaml</div>
-          <div class="meta">spec · input</div>
-        </div>
-
-        <!-- Arrow row -->
-        <div></div>
-        <div class="arch-arrow down">prompt &mdash; auto-activates skill</div>
-        <div class="arch-arrow dotted-right" style="text-align: left; padding-left: 0.5rem;"></div>
-
-        <!-- Row 3: Skills -->
-        <div class="arch-spacer"></div>
-        <div class="arch-box skill">
-          <div class="name">AgentSkills <span style="font-size: 0.65rem; opacity: 0.7;">.agents/skills/</span></div>
-          <div class="meta">8 atomic + 4 workflow · auto-discovered by client</div>
-        </div>
-        <div class="arch-box recording">
-          <div class="name">recordings.json</div>
-          <div class="meta">THE artifact &mdash; flows through every phase</div>
-        </div>
-
-        <!-- Arrow row -->
-        <div></div>
-        <div class="arch-arrow down">tool / prompt call</div>
-        <div></div>
-
-        <!-- Row 4: MCP -->
-        <div class="arch-spacer"></div>
-        <div class="arch-box mcp">
-          <div class="name">@up/mockkit-mcp <span style="font-size: 0.65rem; opacity: 0.7;">+ @playwright/mcp</span></div>
-          <div class="meta">12 tools · 13 prompts · configured in .mcp.json</div>
-        </div>
-        <div class="arch-box artifact">
-          <div class="name">tests/*.spec.ts</div>
-          <div class="meta">generated · output</div>
-        </div>
-
-        <!-- Arrow row -->
-        <div></div>
-        <div class="arch-arrow down">spawn / invoke</div>
-        <div></div>
-
-        <!-- Row 5: Core -->
-        <div class="arch-spacer"></div>
-        <div class="arch-box core">
-          <div class="name">MockKit Core <span style="font-size: 0.65rem; opacity: 0.7;">npm: @up/mockkit</span></div>
-          <div class="meta">CLI · Hono server · recording engine · chaos · circuit breaker</div>
-        </div>
-        <div class="arch-spacer"></div>
-
-        <!-- Arrow row -->
-        <div></div>
-        <div class="arch-arrow down">HTTP &nbsp;·&nbsp; reads/writes</div>
-        <div></div>
-
-        <!-- Row 6: App + Browser path -->
-        <div class="arch-box app">
-          <div class="name">App Under Test</div>
-          <div class="meta">browser or backend &mdash; HTTP to Core</div>
-        </div>
-        <div class="arch-box browser">
-          <div class="name">Browser Layer (alt)</div>
-          <div class="meta">Chrome Extension · MSW &mdash; reads recordings directly, no proxy</div>
-        </div>
-        <div class="arch-spacer"></div>
-      </div>
-
-      <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-dim); text-align: center;">
-        Full diagram + data-flow examples: <span style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">ARCHITECTURE.md</span>
-      </p>
+      <h2 class="slide-title" style="margin-bottom: 0.5rem;">Every arrow ends at<br><span class="accent">the recording.</span></h2>
+      <object type="image/svg+xml" data="architecture.svg" style="width: 100%; height: auto; max-height: 75vh; display: block; margin: 0.5rem auto;"></object>
     </div>
   </section>
 

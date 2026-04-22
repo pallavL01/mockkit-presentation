@@ -4,6 +4,12 @@ How the pieces fit together — from the developer typing a prompt, through the 
 
 ## The full picture
 
+![MockKit Architecture](./architecture.svg)
+
+> The thick cyan border + glow on `recordings.json` is intentional — it's the focal point. Every layer either reads from it or writes to it. That's the throughline.
+
+## Mermaid version (renders inline on GitHub if SVG is blocked)
+
 ```mermaid
 flowchart TB
     Dev(["Developer<br/>(natural language prompt)"])
