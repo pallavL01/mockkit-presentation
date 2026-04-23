@@ -4,17 +4,15 @@ How the pieces fit together — from the developer typing a prompt, through the 
 
 ## The full picture
 
-![MockKit Architecture](./architecture.svg)
-
-> The thick cyan border + glow on `recordings.json` is intentional — it's the focal point. Every layer either reads from it or writes to it. That's the throughline.
-
-## Mermaid version (renders inline on GitHub if SVG is blocked)
-
 ```mermaid
+---
+config:
+  layout: elk
+---
 flowchart TB
     Dev(["Developer<br/>(natural language prompt)"])
 
-    subgraph Clients["AI Clients (30+ AgentSkills-compatible)"]
+    subgraph Clients["AI Clients<br/>(30+ AgentSkills-compatible)"]
         CC["Claude Code"]
         CR["Cursor"]
         GH["GitHub Copilot"]
@@ -22,45 +20,45 @@ flowchart TB
         OT["Codex · JetBrains · ..."]
     end
 
-    subgraph Skills[".agents/skills/  (AgentSkills — auto-discovered)"]
+    subgraph Skills[".agents/skills/<br/>(AgentSkills — auto-discovered)"]
         Atomic["<b>8 Atomic Skills</b><br/>spec-mock · record-api<br/>setup-msw · setup-playwright<br/>record-flow-as-test · audit-tests<br/>chaos · circuit-breaker"]
         Workflow["<b>4 Workflow Skills</b><br/>build-component · ship-feature<br/>harden-tests · spec-to-prod"]
     end
 
-    subgraph MCP["MCP Servers (configured in .mcp.json)"]
+    subgraph MCP["MCP Servers<br/>(configured in .mcp.json)"]
         MockMCP["<b>@up/mockkit-mcp</b><br/>12 tools · 13 prompts"]
-        PlayMCP["<b>@playwright/mcp</b><br/>(used by record-flow-as-test)"]
+        PlayMCP["<b>@playwright/mcp</b><br/>(used by record-flow-as-test only)"]
     end
 
-    subgraph Core["MockKit Core  (npm: @up/mockkit)"]
+    subgraph Core["MockKit Core<br/>(npm: @up/mockkit)"]
         CLI["CLI<br/>start · record · replay · curl"]
         Server["Hono Server<br/>mock · replay · chaos · breaker"]
         RecEng["Recording Engine<br/>capture · templatize · snapshot"]
     end
 
-    subgraph Browser["Browser Layer (alt path)"]
+    subgraph Browser["Browser Layer<br/>(alt path — no proxy)"]
         Chrome["Chrome Extension<br/>(offline mode, capture)"]
         MSWH["MSW Handlers<br/>(in-app interception)"]
     end
 
-    subgraph Artifacts["Artifacts (committed to git)"]
+    subgraph Artifacts["Artifacts<br/>(committed to git)"]
         Spec[("api.yaml<br/>spec")]
         Recordings[("recordings.json<br/><b>THE artifact</b>")]
         Tests[("tests/*.spec.ts<br/>generated")]
     end
 
-    subgraph External["External"]
+    subgraph External["External Systems"]
         App["App Under Test<br/>(browser or backend)"]
-        Upstream["Real Upstream API<br/>(during recording)"]
+        Upstream["Real Upstream API<br/>(record only)"]
     end
 
     Dev -->|prompt| Clients
     Clients -.auto-activate.-> Atomic
-    Workflow -.body-instructed composition.-> Atomic
     Clients -.activate workflow.-> Workflow
+    Workflow -.body-instructed composition.-> Atomic
 
     Atomic -->|tool / prompt call| MockMCP
-    Atomic -.also calls.-> PlayMCP
+    Atomic -.record-flow-as-test only.-> PlayMCP
 
     MockMCP -->|spawn / invoke| CLI
     MockMCP -->|HTTP| Server
@@ -71,8 +69,8 @@ flowchart TB
     RecEng <-.reads/writes.-> Recordings
     CLI -.reads.-> Spec
 
-    App <-->|HTTP| Server
-    Server -->|forward| Upstream
+    App <-->|"HTTP<br/>(or via Browser Layer)"| Server
+    Server -->|"forward<br/>(record only)"| Upstream
     Upstream -.captured response.-> RecEng
 
     App -->|fetch/XHR| Chrome
@@ -86,12 +84,24 @@ flowchart TB
     classDef artifact fill:#1a1a1a,stroke:#00F5FF,stroke-width:2px,color:#fff
     classDef skill fill:#0f1929,stroke:#00F5FF,stroke-width:1px,color:#fff
     classDef mcp fill:#1a0f29,stroke:#A78BFA,stroke-width:1px,color:#fff
+    classDef mcpAlt fill:#1a0f29,stroke:#A78BFA,stroke-width:1px,color:#fff,stroke-dasharray: 5 3
     classDef core fill:#1a1a1a,stroke:#fff,stroke-width:1px,color:#fff
     class Spec,Recordings,Tests artifact
     class Atomic,Workflow skill
-    class MockMCP,PlayMCP mcp
+    class MockMCP mcp
+    class PlayMCP mcpAlt
     class CLI,Server,RecEng core
 ```
+
+> **Renderer note:** the `layout: elk` directive needs Mermaid v11+. GitHub renders Mermaid 10.x as of late 2025 and silently falls back to dagre — still readable, just less cleanly routed. VS Code, Obsidian (with the Mermaid v11 plugin), and most modern doc viewers will render with ELK.
+
+### Render-anywhere fallback (SVG)
+
+If your viewer blocks Mermaid or you want pixel-perfect output:
+
+![MockKit Architecture](./architecture.svg)
+
+The thick cyan border + glow on `recordings.json` is intentional — it's the focal point. Every layer either reads from it or writes to it.
 
 ## How to read it
 
