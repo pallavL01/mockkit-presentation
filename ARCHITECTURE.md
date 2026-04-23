@@ -103,6 +103,219 @@ If your viewer blocks Mermaid or you want pixel-perfect output:
 
 The thick cyan border + glow on `recordings.json` is intentional — it's the focal point. Every layer either reads from it or writes to it.
 
+---
+
+## Complete system map (reference)
+
+The lifecycle view above is narrative — focused on the AI-driven dev loop. This map is exhaustive: every published package, every MCP server, every input/output, every consumer. Use it to answer "what connects to what."
+
+```mermaid
+---
+config:
+  layout: elk
+---
+flowchart TB
+    %% ─── INPUTS ───
+    subgraph Inputs["📥 Inputs"]
+        OAS[("OpenAPI<br/>api.yaml")]
+        SS[("Simple Schema<br/>schema.yaml")]
+        HAR[("HAR import<br/>browser export")]
+    end
+
+    %% ─── AI CONSUMER LAYER ───
+    subgraph AI["🤖 AI Layer"]
+        AIClient["AI Client<br/>(Claude Code · Cursor · Copilot ·<br/>Gemini · Codex · 30+)"]
+        SkillsRepo["AgentSkills<br/>.agents/skills/<br/>(8 atomic + 4 workflow)"]
+    end
+
+    %% ─── MCP SERVERS (configured in .mcp.json) ───
+    subgraph MCPLayer["🔌 MCP Servers"]
+        MockMCP["@up/mockkit-mcp<br/>12 tools · 13 prompts"]
+        PlayMCP["@playwright/mcp<br/>browser primitives<br/>(snapshot · click · navigate)"]
+        DevToolsMCP["chrome-devtools-mcp<br/>Lighthouse · Performance<br/>(used by Scenario 18)"]
+    end
+
+    %% ─── MOCKKIT PACKAGES (the monorepo) ───
+    subgraph MK["📦 MockKit Monorepo (4 packages)"]
+        direction TB
+
+        subgraph CorePkg["@up/mockkit · core"]
+            CLI["CLI<br/>start · record · replay · curl<br/>validate · routes · init · examples<br/>recordings · import · snapshots<br/>chaos · cache · browser"]
+            Hono["Hono Server<br/>3 modes: mock · record · replay<br/>+ /__mock__/* admin endpoints"]
+            RecEng["Recording Engine<br/>capture · templatize · snapshot<br/>HAR export · diff · merge"]
+            ChaosE["Chaos Engine<br/>error rate · latency · timeout<br/>circuit breaker (per-endpoint)"]
+            PWFix["Playwright Fixture<br/>@up/mockkit-playwright<br/>(re-exported from core)"]
+            BrowserBundle["Browser Bundle<br/>generated MSW handlers<br/>from spec"]
+        end
+
+        MCPPkg["@up/mockkit-mcp<br/>thin wrapper over CLI + HTTP"]
+
+        subgraph CXT["chrome-extension"]
+            DevPanel["DevTools Panel<br/>(React UI)"]
+            BG["Background SW<br/>state · proxy · injection"]
+            CSIso["offline-content.ts<br/>(ISOLATED world bridge)"]
+            CSMain["offline-inject.ts<br/>(MAIN world fetch override)"]
+        end
+
+        Preview["@up/mockkit-preview<br/>Vite app · visualize<br/>MSW handlers from spec"]
+    end
+
+    %% ─── BROWSER LAYER (in the app under test) ───
+    subgraph BrowserLayer["🌐 Browser Layer (in App Under Test)"]
+        MSWBrowser["MSW Service Worker<br/>(in app's public/)"]
+        ExtRuntime["Chrome Extension Runtime<br/>(injected per tab)"]
+    end
+
+    %% ─── TEST LAYER ───
+    subgraph TestLayer["🧪 Test Layer"]
+        PWRunner["Playwright Test Runner<br/>npx playwright test"]
+        CIRunner["CI Runner<br/>GitHub Actions · GitLab · etc."]
+    end
+
+    %% ─── OUTPUTS / ARTIFACTS ───
+    subgraph Outputs["📤 Outputs (committed to git)"]
+        Recs[("recordings.json<br/><b>THE artifact</b>")]
+        Snaps[("snapshots/<br/>named scenarios")]
+        Tests[("tests/*.spec.ts<br/>Playwright specs")]
+        HAREx[("HAR exports<br/>/__mock__/recordings/export")]
+        Lighthouse[("Lighthouse reports<br/>JSON · perf metrics")]
+        MSWFiles[("src/mocks/handlers.ts<br/>generated MSW handlers")]
+    end
+
+    %% ─── CONSUMERS ───
+    subgraph Apps["💻 App Under Test"]
+        FE["Frontend App<br/>(browser)"]
+        BE["Backend Service<br/>(HTTP client)"]
+    end
+
+    %% ─── EXTERNAL ───
+    subgraph Ext["🌍 External"]
+        Upstream["Real Upstream API<br/>(only during record)"]
+    end
+
+    %% ═══ EDGES ═══
+
+    %% Inputs → Core
+    OAS -->|spec| CLI
+    SS -->|spec| CLI
+    HAR -.import.-> CLI
+
+    %% AI → Skills → MCP
+    AIClient -.auto-discover.-> SkillsRepo
+    SkillsRepo -->|tool / prompt call| MockMCP
+    SkillsRepo -.record-flow-as-test only.-> PlayMCP
+    SkillsRepo -.scenario 18 only.-> DevToolsMCP
+
+    %% MCP → Core
+    MockMCP -->|spawn / HTTP| CLI
+    MockMCP -.HTTP /__mock__/* .-> Hono
+
+    %% Core internal
+    CLI --> Hono
+    CLI --> RecEng
+    CLI --> ChaosE
+    Hono --> RecEng
+    Hono --> ChaosE
+    CLI -.generates.-> BrowserBundle
+    CLI -.generates.-> MSWFiles
+    BrowserBundle --> PWFix
+
+    %% Browser injection paths
+    DevPanel <-->|chrome.runtime| BG
+    BG -->|chrome.scripting| CSIso
+    BG -->|chrome.scripting + MAIN world| CSMain
+    CSIso <-.postMessage.-> CSMain
+    BG -.imports.-> ExtRuntime
+    CSMain -.intercepts fetch.-> ExtRuntime
+
+    %% Preview
+    Preview -.reads.-> OAS
+    Preview -.renders.-> MSWFiles
+
+    %% App ↔ MockKit (multiple paths)
+    FE <-->|HTTP fetch/XHR| Hono
+    BE <-->|HTTP| Hono
+    FE -->|fetch/XHR| MSWBrowser
+    FE -->|fetch/XHR via injected| ExtRuntime
+    MSWBrowser -.uses.-> MSWFiles
+
+    %% Recording read paths
+    RecEng <-.reads/writes.-> Recs
+    RecEng <-.reads/writes.-> Snaps
+    RecEng -.exports.-> HAREx
+    ExtRuntime -.reads.-> Recs
+    MSWBrowser -.reads.-> Recs
+
+    %% Real upstream
+    Hono -->|"forward<br/>(record only)"| Upstream
+    Upstream -.captured response.-> RecEng
+
+    %% Playwright orchestration
+    PWMCP_drive["drives browser"]
+    PlayMCP -.drives.-> FE
+    PWFix -.starts mock for tests.-> Hono
+    PWRunner -->|uses fixture| PWFix
+    PWRunner -.executes.-> Tests
+    SkillsRepo -.writes via record-flow-as-test.-> Tests
+
+    %% chrome-devtools-mcp
+    DevToolsMCP -.measures.-> FE
+    DevToolsMCP -.outputs.-> Lighthouse
+
+    %% CI
+    CIRunner -->|invokes| PWRunner
+    CIRunner -.starts via fixture.-> Hono
+    CIRunner -.reads.-> Recs
+
+    %% ─── Styling ───
+    classDef artifact fill:#1a1a1a,stroke:#00F5FF,stroke-width:2px,color:#fff
+    classDef recording fill:#062a30,stroke:#00F5FF,stroke-width:3px,color:#fff
+    classDef skill fill:#0f1929,stroke:#00F5FF,stroke-width:1px,color:#fff
+    classDef mcp fill:#1a0f29,stroke:#A78BFA,stroke-width:1px,color:#fff
+    classDef mcpAlt fill:#1a0f29,stroke:#A78BFA,stroke-width:1px,color:#fff,stroke-dasharray: 5 3
+    classDef pkg fill:#161616,stroke:#9ca3af,stroke-width:1px,color:#fff
+    classDef ext fill:#1a1a1a,stroke:#6b7280,stroke-width:1px,color:#9ca3af,stroke-dasharray: 4 4
+    class Recs recording
+    class Snaps,Tests,HAREx,Lighthouse,MSWFiles,OAS,SS,HAR artifact
+    class SkillsRepo skill
+    class MockMCP mcp
+    class PlayMCP,DevToolsMCP mcpAlt
+    class CLI,Hono,RecEng,ChaosE,PWFix,BrowserBundle,MCPPkg,DevPanel,BG,CSIso,CSMain,Preview pkg
+    class Upstream ext
+```
+
+### Reading the system map
+
+Six logical groupings (matched to the icons in the subgraph titles):
+
+| Group | What it contains | Lives where |
+|---|---|---|
+| 📥 **Inputs** | OpenAPI / Simple Schema specs, HAR imports | User-provided, in repo |
+| 🤖 **AI Layer** | AI client + AgentSkills | Client config + `.agents/skills/` |
+| 🔌 **MCP Servers** | mockkit-mcp + playwright-mcp + chrome-devtools-mcp | `.mcp.json` |
+| 📦 **MockKit Monorepo** | Core, MCP wrapper, Chrome extension, Preview | `packages/` in mockkit repo |
+| 🌐 **Browser Layer** | MSW worker, Chrome extension runtime | Injected into the App Under Test |
+| 🧪 **Test Layer** | Playwright runner, CI runner | Wherever you run tests |
+| 📤 **Outputs** | recordings, snapshots, tests, HAR exports, Lighthouse reports, MSW handlers | All committed to git |
+| 💻 **Apps** | Frontend (browser), Backend (HTTP client) | The thing being tested |
+| 🌍 **External** | Real upstream API (only during record) | Third party |
+
+### Lookup: "What connects to what?"
+
+Common questions and where to find the answer in the map:
+
+| Question | Path through the map |
+|---|---|
+| How does `mockkit start -s api.yaml` work? | `OAS → CLI → Hono`, then App fetches `Hono` over HTTP |
+| How does the AI generate a Playwright test? | `AIClient → SkillsRepo (record-flow-as-test) → PlayMCP → drives FE`, simultaneously `→ MockMCP → Hono` for deterministic backend, then writes to `Tests` |
+| How does Lighthouse audit fit in? | `AIClient → SkillsRepo → DevToolsMCP → measures FE → outputs Lighthouse reports` (used in Scenario 18) |
+| How does the Chrome extension intercept fetch? | `BG → chrome.scripting → CSMain (MAIN world) → intercepts fetch in ExtRuntime → reads Recs` |
+| How does MSW serve the recording? | `MSWBrowser (running in app's service worker) → reads MSWFiles → falls back to Recs for capture-mode replays` |
+| How does CI run a Playwright suite without a backend? | `CIRunner → PWRunner → PWFix (starts Hono in mock/replay mode) → Tests run against Hono → reads Recs` |
+| What's the difference between `mockkit-mcp` and `mockkit`? | `mockkit-mcp` is a thin wrapper that spawns `mockkit` CLI / talks HTTP to its `Hono` server. The MCP server doesn't replicate Core capabilities — it exposes them. |
+| Is the Preview app required? | No. `Preview` reads `OAS` and renders `MSWFiles` for visualization only. Orthogonal to the runtime path. |
+| When does the proxy hit upstream? | `Hono → forward → Upstream` only fires during `mockkit record`. In `mock` and `replay` modes, that arrow is dormant. |
+
 ## How to read it
 
 The diagram has **six horizontal layers** plus two side groupings.
